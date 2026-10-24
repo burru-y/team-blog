@@ -3,7 +3,10 @@
 # which corrupts non-ASCII strings and breaks parsing.
 # Run: powershell -ExecutionPolicy Bypass -File .\connect-github.ps1
 
-$ErrorActionPreference = "Stop"
+# Do not use "Stop": PowerShell 5.1 turns native-command stderr into a terminating
+# error, so a harmless "No such remote: origin" would abort the script.
+# Exit codes are checked explicitly via $LASTEXITCODE instead.
+$ErrorActionPreference = "Continue"
 
 function Step([int]$n, [string]$t) {
     Write-Host ""
@@ -92,8 +95,13 @@ Write-Host "  Do NOT tick README / .gitignore / license" -ForegroundColor Yellow
 $url = Read-Host "  repo url (git@github.com:USER/team-blog.git)"
 if ([string]::IsNullOrWhiteSpace($url)) { Write-Host "url is required" -ForegroundColor Red; exit 1 }
 
-git remote remove origin 2>$null
-git remote add origin "$url"
+$remotes = git remote
+if ($remotes -contains "origin") {
+    git remote set-url origin "$url"
+} else {
+    git remote add origin "$url"
+}
+git remote -v
 git branch -M main
 git push -u origin main
 

@@ -1,0 +1,542 @@
+openapi: 3.1.0
+info:
+  title: TeamBlog API
+  version: 0.1.0
+  description: |
+    当前已实现的端点：健康检查、登录、刷新、登出、当前用户。
+
+    这份文件可以直接导入 Apifox（导入 → OpenAPI/Swagger → 选择本文件），
+    也可以作为批次 2.1「契约先行」的起点——之后由 Spring 生成全量 OpenAPI，
+    与前端类型生成对齐。
+
+    认证说明：
+    - `accessToken` 放 `Authorization: Bearer <token>`，有效期 30 分钟；
+    - `refreshToken` 只存在于 httpOnly Cookie（名为 `rt`，Path=/api/v1/auth，7 天），
+      前端 **读不到也不需要读**，登录/刷新后由浏览器自动携带；
+    - 刷新会轮换 Cookie；拿已经轮换掉的旧 Cookie 再刷新，会触发全量撤销（401 SESSION_REVOKED）。
+servers:
+  - url: http://127.0.0.1:8080
+    description: 本地开发
+
+tags:
+  - name: auth
+    description: 认证（无需登录态）
+  - name: user
+    description: 用户
+  - name: health
+    description: 健康检查
+
+paths:
+  /api/v1/health:
+    get:
+      tags: [health]
+      operationId: health
+      summary: 健康检查（含数据库与迁移版本）
+      security: []
+      responses:
+        '200':
+          description: 服务正常
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiHealth'
+        '503':
+          description: 数据库不可用
+
+  /api/v1/auth/login:
+    post:
+      tags: [auth]
+      operationId: login
+      summary: 用户名密码登录
+      description: |
+        成功时：响应体返回 accessToken，同时 `Set-Cookie: rt=...; HttpOnly; SameSite=Lax`。
+
+        失败文案对"用户不存在"和"密码错误"完全一致（防枚举）。
+
+        同一账号或同一 IP 连续失败 5 次后，第 6 次直接返回 429（带 `Retry-After`），
+        文案仍是"用户名或密码错误"——不额外透露"这个账号被锁了"。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+            example:
+              username: admin1
+              password: ChangeMe123!
+      responses:
+        '200':
+          description: 登录成功
+          headers:
+            Set-Cookie:
+              description: 写入 refresh token（HttpOnly，7 天）
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiToken'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '429':
+          description: 触发登录限流（同一账号或 IP 连续失败 5 次）
+          headers:
+            Retry-After:
+              description: 多少秒后可以再试
+              schema:
+                type: integer
+                example: 573
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                ok: false
+                data: null
+                error:
+                  code: RATE_LIMITED
+                  message: 用户名或密码错误
+
+  /api/v1/auth/refresh:
+    post:
+      tags: [auth]
+      operationId: refresh
+      summary: 用 refresh Cookie 换一对新凭据（轮换）
+      description: |
+        每次刷新都会作废旧 Cookie 并下发新的。
+
+        如果提交的是**已经被轮换掉**的旧 Cookie，说明发生了重放：服务端会撤销该用户
+        全部会话（包括仍有效的 access token），返回 401 `SESSION_REVOKED`。
+      security:
+        - refreshCookie: []
+      responses:
+        '200':
+          description: 刷新成功（下发新的 refresh Cookie）
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiToken'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/auth/logout:
+    post:
+      tags: [auth]
+      operationId: logout
+      summary: 登出（作废当前 refresh token 并清 Cookie）
+      security:
+        - refreshCookie: []
+      responses:
+        '200':
+          description: 已登出（Set-Cookie 的 Max-Age=0）
+          headers:
+            Set-Cookie:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+
+  /api/v1/me:
+    get:
+      tags: [user]
+      operationId: getCurrentUser
+      summary: 当前登录用户
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUser'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/admin/invites:
+    post:
+      tags: [invite]
+      operationId: createInvite
+      summary: 管理员生成一次性邀请（仅 ADMIN）
+      description: |
+        返回的 `token` 是**唯一一次**能看到明文的地方，库里只存哈希。
+
+        邀请默认 7 天有效（`invite.ttl`）。角色必须显式传 ADMIN 或 MEMBER——
+        不给默认值，避免"本来只想拉成员，手滑拉成管理员"。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInviteRequest'
+            example:
+              email: newbie@example.com
+              role: MEMBER
+      responses:
+        '200':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiInviteCreated'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: 不是管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/invites/{token}:
+    get:
+      tags: [invite]
+      operationId: getInviteInfo
+      summary: 查看邀请信息（注册页用，公开）
+      description: 让注册页预先展示"这个链接是给谁的、什么时候过期"，避免用户填完密码才被告知失效。
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 邀请可用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiInviteInfo'
+        '410':
+          $ref: '#/components/responses/InviteInvalid'
+
+  /api/v1/invites/{token}/accept:
+    post:
+      tags: [invite]
+      operationId: acceptInvite
+      summary: 凭邀请注册（公开）
+      description: |
+        成功后返回 201 与新建账号的公开资料（**不含密码哈希**），用户随后走登录接口。
+
+        同一邀请只能用一次：第二次兑换返回 410 `INVITE_INVALID`（数据库条件更新保证，
+        并发下也只有一个请求能成功）。
+      security: []
+      parameters:
+        - name: token
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+            example:
+              username: newbie01
+              password: S3cret!pass
+              email: newbie@example.com
+      responses:
+        '201':
+          description: 注册成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUser'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '409':
+          description: 用户名或邮箱已被占用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '410':
+          $ref: '#/components/responses/InviteInvalid'
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 登录或刷新得到的 accessToken
+    refreshCookie:
+      type: apiKey
+      in: cookie
+      name: rt
+      description: 登录后由服务端下发，浏览器自动携带
+
+  responses:
+    Unauthenticated:
+      description: 未登录 / token 无效 / 会话已失效
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            unauthenticated:
+              value:
+                ok: false
+                data: null
+                error:
+                  code: UNAUTHENTICATED
+                  message: 未登录或 token 无效
+            sessionRevoked:
+              value:
+                ok: false
+                data: null
+                error:
+                  code: SESSION_REVOKED
+                  message: 会话已失效，请重新登录
+    ValidationFailed:
+      description: 参数格式错误
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+
+    InviteInvalid:
+      description: 邀请无效 / 已被使用 / 已过期（410 Gone）
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiError'
+          examples:
+            used:
+              value:
+                ok: false
+                data: null
+                error:
+                  code: INVITE_INVALID
+                  message: 邀请已被使用
+            expired:
+              value:
+                ok: false
+                data: null
+                error:
+                  code: INVITE_INVALID
+                  message: 邀请已过期
+
+  schemas:
+    ApiError:
+      type: object
+      required: [ok, error]
+      properties:
+        ok:
+          type: boolean
+          const: false
+        data:
+          type: 'null'
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - UNAUTHENTICATED
+                - SESSION_REVOKED
+                - FORBIDDEN
+                - NOT_FOUND
+                - INVITE_INVALID
+                - VALIDATION_FAILED
+                - RULE_VIOLATED
+                - CONFLICT
+                - RATE_LIMITED
+                - UPSTREAM_FAILED
+                - INTERNAL
+            message:
+              type: string
+
+    ApiToken:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          $ref: '#/components/schemas/TokenResponse'
+        error:
+          type: 'null'
+
+    ApiUser:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          $ref: '#/components/schemas/UserResponse'
+        error:
+          type: 'null'
+
+    ApiHealth:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            status:
+              type: string
+              example: UP
+            db:
+              type: string
+              example: UP
+            flyway:
+              type: string
+              example: '1'
+
+    ApiVoid:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: 'null'
+
+    LoginRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          minLength: 1
+          maxLength: 20
+          example: admin1
+        password:
+          type: string
+          minLength: 1
+          format: password
+          example: ChangeMe123!
+
+    TokenResponse:
+      type: object
+      required: [accessToken, expiresAt]
+      properties:
+        accessToken:
+          type: string
+          description: HS256 JWT，30 分钟
+        expiresAt:
+          type: string
+          format: date-time
+          example: '2026-10-24T10:30:00+08:00'
+
+    CreateInviteRequest:
+      type: object
+      required: [role]
+      properties:
+        email:
+          type: [string, 'null']
+          format: email
+          description: 可选。填了则注册时必须用这个邮箱（发给特定的人）
+        role:
+          type: string
+          enum: [ADMIN, MEMBER]
+          description: 显式传，不给默认值
+
+    ApiInviteCreated:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            token:
+              type: string
+              description: 明文邀请 token，**只在这里出现一次**
+            email:
+              type: [string, 'null']
+            role:
+              type: string
+              enum: [ADMIN, MEMBER]
+            expiresAt:
+              type: string
+              format: date-time
+
+    ApiInviteInfo:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: object
+          properties:
+            email:
+              type: [string, 'null']
+            role:
+              type: string
+              enum: [ADMIN, MEMBER]
+            expiresAt:
+              type: string
+              format: date-time
+
+    RegisterRequest:
+      type: object
+      required: [username, password]
+      properties:
+        username:
+          type: string
+          pattern: '^[a-zA-Z0-9_]{3,20}$'
+          example: newbie01
+        password:
+          type: string
+          minLength: 8
+          maxLength: 72
+          format: password
+          example: S3cret!pass
+        email:
+          type: [string, 'null']
+          format: email
+          description: 邀请未指定邮箱时必填；指定了则忽略此字段
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        email:
+          type: [string, 'null']
+          description: 本人视角返回真实邮箱；公开视角仅当 emailPublic=true 时返回
+        role:
+          type: string
+          enum: [ADMIN, MEMBER]
+        avatarUrl:
+          type: [string, 'null']
+        bio:
+          type: [string, 'null']
+        githubUrl:
+          type: [string, 'null']
+        emailPublic:
+          type: boolean
+        totalPoints:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time

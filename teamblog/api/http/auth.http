@@ -1,0 +1,59 @@
+### TeamBlog · 认证链路（IDEA HTTP Client）
+### 用法：IDEA 里点每个请求左侧的 ▶。
+### Cookie 由 IDEA 自动保存（http-client.cookies.json），登录后刷新/登出无需手动复制。
+
+@baseUrl = http://127.0.0.1:8080
+
+### 1. 健康检查（免登录）
+GET {{baseUrl}}/api/v1/health
+
+### 2. 登录 —— 响应里的 accessToken 自动存进全局变量
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "password": "ChangeMe123!"
+}
+
+> {%
+  client.global.set("access_token", response.body.data.accessToken);
+  client.test("登录成功", function () {
+    client.assert(response.status === 200, "期望 200，实际 " + response.status);
+    client.assert(response.body.data.accessToken.length > 50, "accessToken 太短");
+  });
+%}
+
+### 3. 当前用户（用上面拿到的 access token）
+GET {{baseUrl}}/api/v1/me
+Authorization: Bearer {{access_token}}
+
+### 4. 刷新 —— Cookie 由客户端自动带上，服务端会轮换它
+POST {{baseUrl}}/api/v1/auth/refresh
+
+> {%
+  client.global.set("access_token", response.body.data.accessToken);
+%}
+
+### 5. 登出 —— 服务端清 Cookie
+POST {{baseUrl}}/api/v1/auth/logout
+
+### 6. 反例：不带 token 访问受保护端点 → 401 UNAUTHENTICATED
+GET {{baseUrl}}/api/v1/me
+
+### 7. 反例：错误密码 → 401，文案与"用户不存在"一致
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: application/json
+
+{
+  "username": "admin1",
+  "password": "wrong-password"
+}
+
+### 8. 反例：重放旧 refresh token → 401 SESSION_REVOKED
+### 注意：要把第 4 步之前保存的旧 rt 手动贴回来。idea 的 cookies 文件在
+### %APPDATA%\JetBrains\IntelliJIdea2025.3\http-client.cookies.json，
+### 或者在 Apifox 里用"环境变量 + 手动 Cookie 头"更方便。
+POST {{baseUrl}}/api/v1/auth/refresh
+Cookie: rt=<把旧的 rt 值贴在这里>

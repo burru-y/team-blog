@@ -1,0 +1,27 @@
+# 集成测试专用配置。
+#
+# 为什么要独立库：
+#   1. 测试会反复建删数据，不能污染 dev 的 blog 库；
+#   2. Q-09「测试必须能重复跑」要求测试不依赖库里已有数据；
+#   3. dev profile 会额外加载 db/seed（D-03），测试库不需要种子，
+#      从空库只跑 db/migration 才能真正验证「迁移能在空库跑通」。
+#
+# TODO(批次 1 之后): Docker 可用时切换为 Testcontainers（Q-02），
+#   届时删掉本文件，改用 @Testcontainers + PostgreSQLContainer。
+
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/blog_test}
+    username: ${TEST_DB_USER:blog}
+    password: ${TEST_DB_PASSWORD:blog_dev_pw}
+  flyway:
+    # 只跑迁移，不加载 db/seed
+    locations: classpath:db/migration
+
+jwt:
+  # 测试专用固定密钥。可预测没有关系：它只作用于本地测试库，永不进入部署环境。
+  secret: test-only-secret-key-with-at-least-32-bytes
+
+logging:
+  level:
+    org.flywaydb: INFO

@@ -27,7 +27,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>21</java.version>
+        <java.version>17</java.version>
     </properties>
     <dependencies>
         <dependency>
@@ -63,6 +63,19 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <!--
+            JWT 签发与校验。
+            为什么自己实现 HS256 而不是加依赖：签名算法本身只有二十来行，但 base64url
+            填充、常量时间比较、算法混淆（alg=none）这些细节一旦写错就是越权漏洞，
+            不值得为了省一个依赖去踩（X-01）。
+            为什么选 java-jwt 而不是 jjwt：单个 jar、API 直白（create/verify），
+            团队 4 人，维护成本比多一个 impl/jackson 三件套更重要。
+        -->
+        <dependency>
+            <groupId>com.auth0</groupId>
+            <artifactId>java-jwt</artifactId>
+            <version>4.5.0</version>
         </dependency>
         <dependency>
             <groupId>org.projectlombok</groupId>
