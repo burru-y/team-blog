@@ -43,6 +43,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 必须设置（至少 32 字节）}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       UPLOAD_DIR: /app/uploads
+      # 摘要服务：容器网络内直连 ai，外网访问不到（Nginx 对 /ai/v1/summarize 返回 403）
+      SUMMARIZER_URL: http://ai:8000
+      INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:-dev-internal-secret}
       TZ: Asia/Shanghai
     volumes:
       # 上传目录与 nginx 共享：api 写，nginx 直接读，静态文件不经过 Java
@@ -63,6 +66,27 @@ services:
       TZ: Asia/Shanghai
     expose:
       - "3000"
+
+  ai:
+    build:
+      context: ../../ai
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
+      AI_MODEL: ${AI_MODEL:-deepseek-flash}
+      # asyncpg 要的是标准 DSN，不带 jdbc: 前缀
+      AI_DATABASE_URL: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-blog}
+      AI_INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:-dev-internal-secret}
+      AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-20}
+      AI_ENABLED: ${AI_ENABLED:-true}
+      TZ: Asia/Shanghai
+    expose:
+      - "8000"
 
   nginx:
     image: nginx:1.27-alpine

@@ -120,3 +120,60 @@ docker exec teamblog-db-1 psql -U blog -d blog -c \
 
 > 这是**已知缺口**：方案里提到用 `ADMIN_BOOTSTRAP` 环境变量 + 首次登录强制改密，
 > 还没实现。在那之前，新环境必须手工执行上面这条 SQL，并且立刻改掉初始密码。
+## AI 服务（批次 7）
+
+`teamblog/ai/` 是独立的 FastAPI 服务，**Nginx 直连，不经 Spring**（SSE 经 Spring 转发要占线程，
+不划算）。
+
+```
+/ai/*  → ai:8000
+```
+
+| 端点 | 说明 |
+|---|---|
+| `GET /ai/health` | 健康检查（含 provider） |
+| `POST /ai/v1/project-chat` | 项目问答，SSE 流式 |
+| `POST /ai/v1/summarize` | 摘要，**仅内网**：外网经 Nginx 一律 403，需 HMAC 头 |
+
+### 没有 API key 也能验
+
+默认 `AI_PROVIDER=mock`：mock 会把问题回显并逐字发送，用来验证**链路**（含 Nginx 缓冲）。
+接真模型只改环境变量：
+
+```bash
+AI_PROVIDER=deepseek
+AI_API_KEY=sk-xxx
+AI_MODEL=deepseek-chat
+```
+
+然后 `docker compose up -d ai`。
+
+### SSE 的三个关键点
+
+1. `proxy_buffering off`（nginx）+ `X-Accel-Buffering: no`（应用），少一个就变成"一次性输出"
+2. 15 秒 `: ping` 心跳，防止中间层掐断空闲连接
+3. 客户端断开后停止生成——否则关页面了 token 还在烧
+
+### 实测（经 Nginx）
+
+```bash
+python teamblog/ai/scripts/verify_sse.py
+```
+
+```
+首块到达 0.06s   总耗时 1.29s   收包 67 次（分批，不是一次性）
+事件序列 delta ×120 → done
+```
+
+## 当前进度
+
+| 批次 | 状态 |
+|---|---|
+| 0 地基 + CI | ✅ |
+| 1 认证闭环（G1） | ✅ |
+| 2 垂直切片（G2） | ✅ |
+| 3 内容发布（G3） | ✅ |
+| 4 打卡/积分/对账（G4） | ✅ |
+| 5 部署门禁（G5） | ✅ 四容器 healthy，14 项验收 |
+| 6 互动 + 后台（G6） | ✅ |
+| 7 AI（G7） | 🚧 7.1 骨架 / 7.2 SSE / 7.3 摘要端点 已完成；prompt 离线评测、Spring 侧调用、前端抽屉待做 |

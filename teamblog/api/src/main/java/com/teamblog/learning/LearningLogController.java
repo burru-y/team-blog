@@ -6,6 +6,7 @@ import com.teamblog.learning.dto.LearningLogCreateRequest;
 import com.teamblog.learning.dto.LearningLogCreatedResponse;
 import com.teamblog.learning.dto.LearningLogResponse;
 import com.teamblog.learning.dto.LearningLogUpdateRequest;
+import com.teamblog.learning.dto.SummaryResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -54,6 +55,14 @@ public class LearningLogController {
             @Valid @RequestBody LearningLogCreateRequest request) {
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(learningLogService.create(principal.id(), request)));
+    }
+
+    /** 生成摘要（不落库）：前端把结果填进编辑框，成员确认后再调 PUT 保存。 */
+    @PostMapping("/{id}/summarize")
+    public ApiResponse<SummaryResponse> summarize(@AuthenticationPrincipal AuthPrincipal principal,
+                                                  @PathVariable UUID id) {
+        return ApiResponse.ok(new SummaryResponse(
+                learningLogService.summarize(principal.id(), principal.role(), id)));
     }
 
     @PutMapping("/{id}")

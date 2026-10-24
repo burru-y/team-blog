@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AiChat } from "@/components/ai-chat";
 import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
@@ -70,6 +71,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       {project.contentMd ? <Markdown>{project.contentMd}</Markdown> : null}
 
       <Comments targetType="PROJECT" targetId={project.id} initial={comments} />
+
+      <div>
+        <AiChat projectId={project.id} />
+      </div>
 
       <div className="flex items-center gap-3">
         <Link href="/projects" className={buttonVariants({ variant: "ghost" })}>

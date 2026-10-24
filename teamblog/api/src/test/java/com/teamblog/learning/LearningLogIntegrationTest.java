@@ -22,6 +22,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -41,6 +43,10 @@ class LearningLogIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
+
+    /** AI 客户端用 MockBean：集成测试不依赖 AI 容器是否在跑。 */
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private com.teamblog.ai.AiSummaryClient aiSummaryClient;
 
     @Autowired
     private LearningLogService learningLogService;
@@ -123,6 +129,39 @@ class LearningLogIntegrationTest {
         mockMvc.perform(get("/api/v1/learning-logs").param("username", author.getUsername()))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1));
+    }
+
+    @Test
+    void 摘要_作者可以生成_别人403() throws Exception {
+        User author = persistUser("sum_a");
+        User other = persistUser("sum_b");
+        LearningLogCreatedResponse created = learningLogService.create(author.getId(), aNote("要生成摘要的内容"));
+
+        // 用 MockBean 拦住真实的 AI 调用：集成测试不该依赖外部服务
+        when(aiSummaryClient.summarize(anyString())).thenReturn("这是一段摘要。");
+
+        mockMvc.perform(post("/api/v1/learning-logs/" + created.log().id() + "/summarize")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(author)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.summary").value("这是一段摘要。"));
+
+        mockMvc.perform(post("/api/v1/learning-logs/" + created.log().id() + "/summarize")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(other)))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void 摘要_AI不可用时502() throws Exception {
+        User author = persistUser("sum_fail");
+        LearningLogCreatedResponse created = learningLogService.create(author.getId(), aNote("会失败的内容"));
+
+        when(aiSummaryClient.summarize(anyString()))
+                .thenThrow(new com.teamblog.ai.AiSummaryClient.AiUnavailableException("down"));
+
+        mockMvc.perform(post("/api/v1/learning-logs/" + created.log().id() + "/summarize")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(author)))
+                .andExpect(status().isServiceUnavailable())
+                .andExpect(jsonPath("$.error.code").value("UPSTREAM_FAILED"));
     }
 
     @Test

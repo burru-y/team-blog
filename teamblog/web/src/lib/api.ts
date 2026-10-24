@@ -3,6 +3,7 @@ import type {
   AdminProject,
   CheckinResult,
   InviteCreated,
+  LearningLogResponse,
   CommentBody,
   FeedbackBody,
   CommentResponse,
@@ -132,6 +133,26 @@ export const api = {
   },
 
   /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
+  /** 生成摘要（不落库，前端自己决定要不要保存）。 */
+  summarizeLearningLog(id: string, token: string): Promise<{ summary: string }> {
+    return request<{ summary: string }>(
+      `/api/v1/learning-logs/${encodeURIComponent(id)}/summarize`,
+      { method: "POST", token },
+    );
+  },
+
+  updateLearningLog(
+    id: string,
+    body: { title: string; contentMd: string; summaryMd: string | null },
+    token: string,
+  ): Promise<LearningLogResponse> {
+    return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body,
+      token,
+    });
+  },
+
   uploadImage(file: File, token: string): Promise<UploadedImage> {
     return requestForm<UploadedImage>("/api/v1/uploads/images", file, token);
   },

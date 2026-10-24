@@ -257,8 +257,20 @@ class AuthIntegrationTest {
      * 一个用例攒够 5 次失败就会把后面的用例一起拦掉——测试会变成"看执行顺序"，
      * 违反 Q-09。用 X-Forwarded-For 隔离，也顺带验证了生产环境经 Nginx 的场景。
      */
+    /**
+     * 生成测试专用的 IP。
+     *
+     * <p>为什么必须严格唯一而不是随机：限流的 IP 维度是**跨账号**累计的。
+     * 原来在 254 个值里随机取，两个测试撞到同一个 IP 时失败次数会相加，
+     * 于是"期望 401"变成"429"——测试偶发失败，但代码是对的。
+     * 用递增序号彻底消除这种耦合。
+     */
+    private static final java.util.concurrent.atomic.AtomicInteger IP_SEQ =
+            new java.util.concurrent.atomic.AtomicInteger();
+
     private static String uniqueIp() {
-        return "198.51.100." + (1 + java.util.concurrent.ThreadLocalRandom.current().nextInt(254));
+        int n = IP_SEQ.incrementAndGet();
+        return "198.18." + (n / 254 + 1) + "." + (n % 254 + 1);
     }
 
     /** 从 Set-Cookie 头里抠出 rt 的值（ResponseCookie 走 header，不走 response.addCookie）。 */

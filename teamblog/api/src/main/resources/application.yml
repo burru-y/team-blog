@@ -52,6 +52,14 @@ auth:
 invite:
   ttl: 7d                         # 邀请链接有效期；过期后兑换返回 410
 
+# 摘要服务（FastAPI）。环境变量名和 AI 服务自己的 AI_BASE_URL 区分开，
+# 避免"配错了却看不出来"
+ai:
+  summarizer:
+    url: ${SUMMARIZER_URL:http://localhost:8000}
+    hmac-secret: ${INTERNAL_HMAC_SECRET:dev-internal-secret}
+    timeout: 20s
+
 upload:
   dir: ${UPLOAD_DIR:./uploads}         # 容器里挂成 /app/uploads
   max-image-size: 5MB

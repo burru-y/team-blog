@@ -1,5 +1,6 @@
 package com.teamblog.learning;
 
+import com.teamblog.ai.AiSummaryClient;
 import com.teamblog.common.BusinessException;
 import com.teamblog.common.ErrorCode;
 import com.teamblog.learning.dto.LearningLogCreateRequest;
@@ -11,6 +12,7 @@ import com.teamblog.points.PointService;
 import com.teamblog.user.Role;
 import com.teamblog.user.User;
 import com.teamblog.user.UserRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,7 @@ import java.util.UUID;
  * 这是可接受的（积分不是钱），如果要严格，得给用户行加锁。这里用注释说明取舍，
  * 而不是假装它是精确的。
  */
+@Slf4j
 @Service
 public class LearningLogService {
 
@@ -41,15 +44,18 @@ public class LearningLogService {
     private final LearningLogRepository learningLogRepository;
     private final UserRepository userRepository;
     private final PointService pointService;
+    private final AiSummaryClient aiSummaryClient;
     private final Clock clock;
 
     public LearningLogService(LearningLogRepository learningLogRepository,
                               UserRepository userRepository,
                               PointService pointService,
+                              AiSummaryClient aiSummaryClient,
                               Clock clock) {
         this.learningLogRepository = learningLogRepository;
         this.userRepository = userRepository;
         this.pointService = pointService;
+        this.aiSummaryClient = aiSummaryClient;
         this.clock = clock;
     }
 
@@ -112,6 +118,35 @@ public class LearningLogService {
         return learningLogRepository.findByUserIdOrderByLogDateDescCreatedAtDesc(userId).stream()
                 .map(log -> LearningLogResponse.from(log, username))
                 .toList();
+    }
+
+    /**
+     * 生成摘要（不落库）。
+     *
+     * <p>权限：作者本人或管理员。摘要会读到正文，让别人对他人未定稿的内容生成摘要没有意义。
+     *
+     * <p>AI 不可用时抛 502：这是**上游**故障，不是用户操作错误，
+     * 用 500 会让人以为后端崩了，用 400 会让人去改输入。
+     */
+    @Transactional(readOnly = true)
+    public String summarize(UUID actorId, Role actorRole, UUID logId) {
+        // 变量名不能叫 log：会遮蔽 @Slf4j 生成的静态 logger，编译期报
+        // "cannot find symbol: method warn(...) on LearningLog"
+        LearningLog entry = learningLogRepository.findById(logId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "学习内容不存在"));
+
+        if (actorRole != Role.ADMIN && !entry.isOwnedBy(actorId)) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "只能为自己发布的内容生成摘要");
+        }
+
+        try {
+            return aiSummaryClient.summarize(entry.getContentMd());
+        } catch (AiSummaryClient.AiUnavailableException ex) {
+            // 对外只说"暂时不可用"，但服务端必须留下真实原因（S-09）：
+            // 否则排查时只能看到 503，连是超时、签名错还是解析失败都分不清
+            log.warn("摘要生成失败：{}", ex.getMessage(), ex);
+            throw new BusinessException(ErrorCode.UPSTREAM_FAILED, "AI 服务暂时不可用，请稍后再试");
+        }
     }
 
     private String usernameOf(UUID userId) {

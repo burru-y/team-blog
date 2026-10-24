@@ -570,6 +570,28 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/learning-logs/{id}/summarize": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 生成摘要（作者本人或管理员）
+         * @description 调用 AI 服务生成摘要，**不落库**：前端填入编辑框，成员确认后再调 PUT 保存。
+         *
+         *     超时 20 秒；AI 不可用时返回 502 `UPSTREAM_FAILED`，前端提示稍后重试。
+         */
+        post: operations["summarizeLearningLog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -954,6 +976,13 @@ export interface components {
         ApiFeedbackList: {
             ok?: boolean;
             data?: components["schemas"]["FeedbackResponse"][];
+        };
+        SummaryResponse: {
+            summary?: string;
+        };
+        ApiSummary: {
+            ok?: boolean;
+            data?: components["schemas"]["SummaryResponse"];
         };
     };
     responses: {
@@ -2024,6 +2053,47 @@ export interface operations {
             };
             /** @description 留言不存在 */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    summarizeLearningLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 生成成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiSummary"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 不是作者也不是管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description AI 服务不可用 */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

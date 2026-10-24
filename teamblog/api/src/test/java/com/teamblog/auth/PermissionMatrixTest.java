@@ -118,6 +118,7 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.POST, "/api/v1/learning-logs", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/learning-logs", Role.MEMBER, 400),
                 new Case(HttpMethod.PUT, "/api/v1/learning-logs/{id}", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/learning-logs/{id}/summarize", null, 401),
 
                 // 公开：留言（空 body 400，证明没被安全链拦；蜜罐/限流在 Service）
                 new Case(HttpMethod.POST, "/api/v1/feedback", null, 400),

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
+import { SummaryGenerator } from "@/components/summary-generator";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
@@ -49,6 +50,14 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
         <h1 className="text-3xl font-semibold tracking-tight">{log.title}</h1>
         {log.summaryMd ? <p className="text-muted-foreground">{log.summaryMd}</p> : null}
       </header>
+
+      <SummaryGenerator
+        logId={log.id}
+        ownerUsername={log.ownerUsername}
+        title={log.title}
+        contentMd={log.contentMd}
+        initialSummary={log.summaryMd ?? null}
+      />
 
       <Markdown>{log.contentMd}</Markdown>
 
