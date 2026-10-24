@@ -192,6 +192,15 @@ class AuthIntegrationTest {
     }
 
     @Test
+    void 请求体不是合法JSON_返回400而不是500() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{not json"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
     void 登录成功会清零失败计数() throws Exception {
         String username = createUser();
         String ip = uniqueIp();

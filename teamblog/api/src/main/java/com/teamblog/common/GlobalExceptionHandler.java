@@ -3,6 +3,7 @@ package com.teamblog.common;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -43,6 +44,18 @@ public class GlobalExceptionHandler {
                 .orElse(ErrorCode.VALIDATION_FAILED.message());
         return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.status())
                 .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED.name(), firstMessage));
+    }
+
+    /**
+     * 请求体不是合法 JSON、或类型对不上（比如给数字字段传了字符串）。
+     *
+     * <p>必须单独处理：它默认会落到下面的 {@code Exception} 分支变成 500，而客户端
+     * 明明有错——500 会让人以为是服务端挂了，排查方向直接跑偏。
+     */
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
+        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.status())
+                .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED.name(), "请求体格式不正确"));
     }
 
     @ExceptionHandler(Exception.class)
