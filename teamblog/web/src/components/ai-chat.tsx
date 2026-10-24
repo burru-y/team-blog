@@ -99,7 +99,9 @@ export function AiChat({ projectId }: { projectId: string }) {
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
             <p className="text-sm font-medium">问问 AI</p>
-            <p className="text-xs text-muted-foreground">只依据这个项目的内容回答</p>
+            <p className="text-xs text-muted-foreground">
+              {token ? "已登录：不限次数，可问通用问题" : "访客模式：每天 8 次，仅限本项目内容"}
+            </p>
           </div>
           <Button variant="ghost" size="sm" onClick={close}>
             关闭
@@ -148,7 +150,9 @@ export function AiChat({ projectId }: { projectId: string }) {
                 停止
               </Button>
             ) : null}
-            <span className="text-xs text-muted-foreground">每天有提问次数上限</span>
+            <span className="text-xs text-muted-foreground">
+              {token ? "成员不限次数" : "访客每天 8 次"}
+            </span>
           </div>
         </div>
       </div>

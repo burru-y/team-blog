@@ -43,7 +43,7 @@ export async function streamProjectChat(
   }
 
   if (!response.ok) {
-    handlers.onError(mapStatus(response.status));
+    handlers.onError(mapStatus(response.status, handlers.token));
     return;
   }
   if (!response.body) {
@@ -120,10 +120,11 @@ function handleBlock(block: string, handlers: StreamHandlers): void {
  * 分开写而不是统一"出错了"，是因为这几种情况的**用户动作完全不同**：
  * 额度用完要等明天、功能关闭要找管理员、网络断要检查连接。
  */
-function mapStatus(status: number): string {
+function mapStatus(status: number, token?: string | null): string {
   switch (status) {
     case 429:
-      return "今天的提问次数已用完，明天再来吧";
+      // 两档的额度不同，文案也要说清楚是哪一档用完了
+      return token ? "今天的提问次数已用完，明天再来吧" : "访客每天 8 次的额度已用完，登录后不限次数";
     case 503:
       return "AI 功能暂时关闭了";
     case 404:
