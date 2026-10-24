@@ -210,7 +210,7 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
       await api.revokeInvite(id, token);
       await loadInvites();
     } catch (err) {
-      onError(err instanceof ApiError ? messageFor(err.code) : "撤销失败");
+      onError(err instanceof ApiError ? err.message || messageFor(err.code) : "撤销失败");
     } finally {
       setBusy(false);
     }
@@ -224,7 +224,9 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
       setEmail("");
       await loadInvites();
     } catch (err) {
-      onError(err instanceof ApiError ? messageFor(err.code) : "生成失败");
+      // 后端会给出具体原因（例如"当前不允许签发管理员邀请"），
+      // 用通用文案覆盖掉会让用户以为是"没有权限"，排查方向就错了
+      onError(err instanceof ApiError ? err.message || messageFor(err.code) : "生成失败");
     } finally {
       setBusy(false);
     }
