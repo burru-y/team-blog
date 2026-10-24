@@ -106,6 +106,29 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/users", null, 200),
                 new Case(HttpMethod.GET, "/api/v1/users/{username}", null, 200),
 
+                // 公开：成果流与详情（详情用一个不存在的 id，期望 404 —— 证明没被安全链拦）
+                new Case(HttpMethod.GET, "/api/v1/projects", null, 200),
+                new Case(HttpMethod.GET, "/api/v1/projects/{id}", null, 404),
+
+                // 公开：学习内容（列表必须带 username，缺参数返回 400）
+                new Case(HttpMethod.GET, "/api/v1/learning-logs", null, 400),
+                new Case(HttpMethod.GET, "/api/v1/learning-logs/{id}", null, 404),
+
+                // 需要登录：发布 / 编辑学习内容
+                new Case(HttpMethod.POST, "/api/v1/learning-logs", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/learning-logs", Role.MEMBER, 400),
+                new Case(HttpMethod.PUT, "/api/v1/learning-logs/{id}", null, 401),
+
+                // 需要登录：上传（图片落盘 / 代码转 Markdown）
+                new Case(HttpMethod.POST, "/api/v1/uploads/images", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/uploads/code", null, 401),
+
+                // 需要登录：发布 / 编辑 / 下架（归属校验在 Service，见 ProjectService）
+                new Case(HttpMethod.POST, "/api/v1/projects", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/projects", Role.MEMBER, 400),
+                new Case(HttpMethod.PUT, "/api/v1/projects/{id}", null, 401),
+                new Case(HttpMethod.DELETE, "/api/v1/projects/{id}", null, 401),
+
                 // 需要登录
                 new Case(HttpMethod.GET, "/api/v1/me", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.MEMBER, 200),
@@ -123,7 +146,8 @@ class PermissionMatrixTest {
     void 权限矩阵_三身份访问每个端点_状态码符合预期(Case testCase) throws Exception {
         String path = testCase.pathPattern()
                 .replace("{token}", inviteTokenValue)
-                .replace("{username}", "matrix_member");
+                .replace("{username}", "matrix_member")
+                .replace("{id}", "00000000-0000-7000-8000-000000000000");
 
         MockHttpServletRequestBuilder builder = request(testCase.method(), path)
                 .contentType(MediaType.APPLICATION_JSON)

@@ -35,6 +35,15 @@ export function SiteHeader() {
         </Link>
 
         <nav className="flex items-center gap-3">
+          <Link href="/projects" className="text-sm text-muted-foreground hover:text-foreground">
+            成果
+          </Link>
+          {user ? (
+            <Link href="/publish" className="text-sm text-muted-foreground hover:text-foreground">
+              发布
+            </Link>
+          ) : null}
+
           {loading ? (
             <span className="text-sm text-muted-foreground">…</span>
           ) : user ? (

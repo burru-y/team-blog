@@ -2,6 +2,7 @@ package com.teamblog.user;
 
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,6 +30,16 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 
     @Query("select u from User u where u.email = :email and u.deletedAt is null")
     Optional<User> findActiveByEmail(@Param("email") String email);
+
+    /**
+     * 原子加分。
+     *
+     * <p>不要写成"查出来 +1 再 save"：并发下两个请求会读到同一个旧值，后写的覆盖先写的，
+     * 分就丢了。这条 SQL 由数据库保证原子性（03 方案 §2.5）。
+     */
+    @Modifying
+    @Query("update User u set u.totalPoints = u.totalPoints + :points where u.id = :id")
+    int addPoints(@Param("id") UUID id, @Param("points") int points);
 
     /** 含已软删：占用检查必须看到它们，否则会在唯一键上冲突。 */
     boolean existsByUsername(String username);

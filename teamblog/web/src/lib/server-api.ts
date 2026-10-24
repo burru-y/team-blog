@@ -1,5 +1,11 @@
 import { pageQuery, request } from "./api";
-import type { UserPage, UserResponse } from "./types";
+import type {
+  LearningLogResponse,
+  ProjectPage,
+  ProjectResponse,
+  UserPage,
+  UserResponse,
+} from "./types";
 
 /**
  * 服务端组件专用：Node 里没有"当前站点"，相对路径 `/api/...` 发不出去，
@@ -16,5 +22,24 @@ export const serverApi = {
 
   getUserProfile(username: string): Promise<UserResponse> {
     return request<UserResponse>(`/api/v1/users/${encodeURIComponent(username)}`, { base: ORIGIN });
+  },
+
+  getLearningLog(id: string): Promise<LearningLogResponse> {
+    return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  listLearningLogs(username: string): Promise<LearningLogResponse[]> {
+    return request<LearningLogResponse[]>(
+      `/api/v1/learning-logs?username=${encodeURIComponent(username)}`,
+      { base: ORIGIN },
+    );
+  },
+
+  listProjects(cursor?: string, limit = 20): Promise<ProjectPage> {
+    return request<ProjectPage>(`/api/v1/projects?${pageQuery(cursor, limit)}`, { base: ORIGIN });
+  },
+
+  getProject(id: string): Promise<ProjectResponse> {
+    return request<ProjectResponse>(`/api/v1/projects/${encodeURIComponent(id)}`, { base: ORIGIN });
   },
 };

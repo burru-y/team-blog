@@ -1,9 +1,15 @@
 import type {
+  CodeBlock,
   Envelope,
   ErrorCode,
   InviteInfo,
+  LearningLogBody,
+  LearningLogCreated,
+  ProjectCreateBody,
+  ProjectResponse,
   RegisterRequest,
   TokenResponse,
+  UploadedImage,
   UserPage,
   UserResponse,
 } from "./types";
@@ -104,7 +110,52 @@ export const api = {
   getUserProfile(username: string): Promise<UserResponse> {
     return request<UserResponse>(`/api/v1/users/${encodeURIComponent(username)}`);
   },
+
+  createProject(body: ProjectCreateBody, token: string): Promise<ProjectResponse> {
+    return request<ProjectResponse>("/api/v1/projects", { method: "POST", body, token });
+  },
+
+  removeProject(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/projects/${encodeURIComponent(id)}`, { method: "DELETE", token });
+  },
+
+  createLearningLog(body: LearningLogBody, token: string): Promise<LearningLogCreated> {
+    return request<LearningLogCreated>("/api/v1/learning-logs", { method: "POST", body, token });
+  },
+
+  /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
+  uploadImage(file: File, token: string): Promise<UploadedImage> {
+    return requestForm<UploadedImage>("/api/v1/uploads/images", file, token);
+  },
+
+  /** 代码文件 → Markdown 代码块。 */
+  uploadCode(file: File, token: string): Promise<CodeBlock> {
+    return requestForm<CodeBlock>("/api/v1/uploads/code", file, token);
+  },
 };
+
+async function requestForm<T>(path: string, file: File, token: string): Promise<T> {
+  const form = new FormData();
+  form.append("file", file);
+
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      method: "POST",
+      body: form,
+      headers: { Authorization: `Bearer ${token}` },
+    });
+  } catch {
+    throw new ApiError("NETWORK", "网络异常，请检查后端是否已启动", 0);
+  }
+
+  const envelope = (await response.json().catch(() => null)) as Envelope<T> | null;
+  if (!response.ok || !envelope?.ok || envelope.data === null) {
+    const code = (envelope?.error?.code as ErrorCode | undefined) ?? "INTERNAL";
+    throw new ApiError(code, envelope?.error?.message ?? "上传失败", response.status);
+  }
+  return envelope.data;
+}
 
 export function pageQuery(cursor?: string, limit = 20): string {
   const params = new URLSearchParams();

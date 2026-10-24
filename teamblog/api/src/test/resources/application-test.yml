@@ -18,6 +18,11 @@ spring:
     # 只跑迁移，不加载 db/seed
     locations: classpath:db/migration
 
+upload:
+  # 测试把文件写到 target/ 下，不污染仓库（target 已被忽略）
+  dir: ./target/test-uploads
+  max-image-size: 5MB
+  max-code-size: 256KB
 jwt:
   # 测试专用固定密钥。可预测没有关系：它只作用于本地测试库，永不进入部署环境。
   secret: test-only-secret-key-with-at-least-32-bytes

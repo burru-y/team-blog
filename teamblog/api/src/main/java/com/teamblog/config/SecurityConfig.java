@@ -62,7 +62,14 @@ public class SecurityConfig {
                         // 邀请注册：注册人当然还没有账号
                         .requestMatchers("/api/v1/invites/**").permitAll()
                         // 团队公开资料：访客（未登录）也要能浏览成员与个人页（批次 2 的 Gate）
-                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users", "/api/v1/users/**").permitAll()
+                        // 成果流与详情：访客可见；发布/编辑/下架需要登录（归属校验在 Service）
+                        .requestMatchers(HttpMethod.GET, "/api/v1/projects", "/api/v1/projects/**").permitAll()
+                        // 上传的文件：由静态资源处理器/Nginx 提供，访客可见
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        // 学习内容：公开阅读；发布/编辑需要登录
+                        .requestMatchers(HttpMethod.GET, "/api/v1/learning-logs", "/api/v1/learning-logs/**")
+                        .permitAll()
                         // 管理员域：URL 级规则，写接口的统一入口（S-01 的第一道）
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

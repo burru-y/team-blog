@@ -218,6 +218,147 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/projects": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 成果流（公开，游标分页）
+         * @description 只返回上架（ACTIVE）的成果；已下架的按不存在处理。
+         */
+        get: operations["listProjects"];
+        put?: never;
+        /**
+         * 发布成果（需登录）
+         * @description 必填字段按类型不同（与数据库 CHECK 同义，但给出可读提示）：
+         *
+         *     - `PROJECT`：`githubUrl` 与 `contentMd` 必填
+         *     - `CERTIFICATE` / `AWARD`：`imageUrl` 或 `githubUrl` 至少一个
+         *
+         *     不满足时返回 422 `RULE_VIOLATED`。
+         */
+        post: operations["createProject"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/projects/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 成果详情（公开） */
+        get: operations["getProject"];
+        /**
+         * 编辑成果（作者本人或管理员）
+         * @description 类型不可修改；不是作者也不是管理员时返回 403。
+         */
+        put: operations["updateProject"];
+        post?: never;
+        /**
+         * 下架成果（作者本人或管理员）
+         * @description 软下架：数据保留，状态置为 REMOVED，前台按不存在处理。
+         */
+        delete: operations["removeProject"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learning-logs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 某人的学习内容（公开） */
+        get: operations["listLearningLogs"];
+        put?: never;
+        /**
+         * 发布学习内容（需登录）
+         * @description 每篇 +10 分，**每天最多计 3 篇**；第 4 篇起照常入库但不加分（防刷分）。
+         *
+         *     响应里的 `counted / points / remainingToday` 就是给前端提示用的：
+         *     没加分时应当告诉用户"今日计分额度已用完，内容已保存"。
+         */
+        post: operations["createLearningLog"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/learning-logs/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 学习内容详情（公开） */
+        get: operations["getLearningLog"];
+        /** 编辑学习内容（作者本人或管理员） */
+        put: operations["updateLearningLog"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/images": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 上传图片（需登录）
+         * @description 按**文件头**（magic bytes）判断类型，不信扩展名也不信 Content-Type（S-05）。
+         *
+         *     - 允许：PNG / JPEG / GIF / WebP
+         *     - **禁止 SVG**：SVG 是 XML，可内嵌 script，是存储型 XSS 的常见载体
+         *     - 落盘用服务端生成的 UUID 文件名，不使用客户端文件名（防路径穿越与覆盖）
+         */
+        post: operations["uploadImage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/uploads/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 代码文件转 Markdown 代码块（需登录）
+         * @description 按扩展名识别语言（java / py / js / ts / sql / json / yml / sh / go / rs / ...），
+         *     返回拼好的 Markdown，不落盘。正文里已有 ``` 时自动改用更长的围栏。
+         */
+        post: operations["uploadCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -262,6 +403,65 @@ export interface components {
             avatarUrl?: string | null;
             bio?: string | null;
             totalPoints?: number;
+        };
+        ProjectCreateRequest: {
+            /** @enum {string} */
+            type: "PROJECT" | "CERTIFICATE" | "AWARD";
+            title: string;
+            description: string;
+            /** @description PROJECT 必填；CERTIFICATE/AWARD 与 imageUrl 二者其一 */
+            githubUrl?: string | null;
+            /** @description PROJECT 必填 */
+            contentMd?: string | null;
+            imageUrl?: string | null;
+        };
+        ProjectUpdateRequest: {
+            title: string;
+            description: string;
+            githubUrl?: string | null;
+            contentMd?: string | null;
+            imageUrl?: string | null;
+        };
+        ProjectResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "PROJECT" | "CERTIFICATE" | "AWARD";
+            title?: string;
+            description?: string;
+            githubUrl?: string | null;
+            contentMd?: string | null;
+            imageUrl?: string | null;
+            ownerUsername?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ProjectCardResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "PROJECT" | "CERTIFICATE" | "AWARD";
+            title?: string;
+            description?: string;
+            imageUrl?: string | null;
+            githubUrl?: string | null;
+            ownerUsername?: string;
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiProject: {
+            /** @constant */
+            ok: true;
+            data: components["schemas"]["ProjectResponse"];
+            error?: null;
+        };
+        ApiProjectPage: {
+            /** @constant */
+            ok: true;
+            data: {
+                items: components["schemas"]["ProjectCardResponse"][];
+                nextCursor?: string | null;
+            };
         };
         ApiHealth: {
             ok?: boolean;
@@ -361,6 +561,80 @@ export interface components {
             totalPoints?: number;
             /** Format: date-time */
             createdAt?: string;
+        };
+        LearningLogCreateRequest: {
+            /** @enum {string} */
+            type: "NOTE" | "CODE";
+            title: string;
+            contentMd: string;
+            summaryMd?: string | null;
+        };
+        LearningLogUpdateRequest: {
+            title: string;
+            contentMd: string;
+            summaryMd?: string | null;
+        };
+        LearningLogResponse: {
+            /** Format: uuid */
+            id?: string;
+            /** @enum {string} */
+            type?: "NOTE" | "CODE";
+            title?: string;
+            contentMd?: string;
+            summaryMd?: string | null;
+            /** Format: date */
+            logDate?: string;
+            /** Format: date-time */
+            createdAt?: string;
+            ownerUsername?: string;
+        };
+        LearningLogCreatedResponse: {
+            log?: components["schemas"]["LearningLogResponse"];
+            /** @description 这次发布是否计入积分 */
+            counted?: boolean;
+            /** @description 本次获得的积分（未计入为 0） */
+            points?: number;
+            /** @description 今天还剩几次计分额度 */
+            remainingToday?: number;
+        };
+        ApiLearningLog: {
+            ok?: boolean;
+            data?: components["schemas"]["LearningLogResponse"];
+        };
+        ApiLearningLogCreated: {
+            ok?: boolean;
+            data?: components["schemas"]["LearningLogCreatedResponse"];
+        };
+        ApiLearningLogList: {
+            ok?: boolean;
+            data?: components["schemas"]["LearningLogResponse"][];
+        };
+        UploadedImage: {
+            /** @example /uploads/0192f0c4-....png */
+            url?: string;
+            /** @enum {string} */
+            mime?: "image/png" | "image/jpeg" | "image/gif" | "image/webp";
+            size?: number;
+        };
+        CodeBlock: {
+            /** @example python */
+            language?: string;
+            /**
+             * @example ```python
+             *     def hello():
+             *         pass
+             *     ```
+             */
+            markdown?: string;
+            lines?: number;
+        };
+        ApiUploadedImage: {
+            ok?: boolean;
+            data?: components["schemas"]["UploadedImage"];
+        };
+        ApiCodeBlock: {
+            ok?: boolean;
+            data?: components["schemas"]["CodeBlock"];
         };
     };
     responses: {
@@ -718,6 +992,363 @@ export interface operations {
                     "application/json": components["schemas"]["ApiError"];
                 };
             };
+        };
+    };
+    listProjects: {
+        parameters: {
+            query?: {
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProjectPage"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+        };
+    };
+    createProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProject"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
+            /** @description 违反类型必填规则 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProject"];
+                };
+            };
+            /** @description 不存在或已下架 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProjectUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiProject"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 不是作者也不是管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在或已下架 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    removeProject: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已下架 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiVoid"];
+                };
+            };
+            /** @description 不是作者也不是管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 不存在或已下架 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listLearningLogs: {
+        parameters: {
+            query: {
+                username: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiLearningLogList"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            /** @description 用户不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    createLearningLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearningLogCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiLearningLogCreated"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    getLearningLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiLearningLog"];
+                };
+            };
+            /** @description 不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    updateLearningLog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LearningLogUpdateRequest"];
+            };
+        };
+        responses: {
+            /** @description 更新成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiLearningLog"];
+                };
+            };
+            /** @description 不是作者也不是管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    uploadImage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 上传成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiUploadedImage"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    uploadCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": {
+                    /** Format: binary */
+                    file: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 转换成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiCodeBlock"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
         };
     };
 }

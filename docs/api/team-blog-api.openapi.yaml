@@ -23,6 +23,12 @@ tags:
     description: 认证（无需登录态）
   - name: user
     description: 用户
+  - name: project
+    description: 成果（项目 / 证书 / 奖项）
+  - name: learning
+    description: 学习内容
+  - name: upload
+    description: 文件上传
   - name: health
     description: 健康检查
 
@@ -346,6 +352,361 @@ paths:
                   code: NOT_FOUND
                   message: 用户不存在
 
+  /api/v1/projects:
+    get:
+      tags: [project]
+      operationId: listProjects
+      summary: 成果流（公开，游标分页）
+      description: 只返回上架（ACTIVE）的成果；已下架的按不存在处理。
+      security: []
+      parameters:
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiProjectPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+
+    post:
+      tags: [project]
+      operationId: createProject
+      summary: 发布成果（需登录）
+      description: |
+        必填字段按类型不同（与数据库 CHECK 同义，但给出可读提示）：
+
+        - `PROJECT`：`githubUrl` 与 `contentMd` 必填
+        - `CERTIFICATE` / `AWARD`：`imageUrl` 或 `githubUrl` 至少一个
+
+        不满足时返回 422 `RULE_VIOLATED`。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiProject'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '422':
+          description: 违反类型必填规则
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/projects/{id}:
+    get:
+      tags: [project]
+      operationId: getProject
+      summary: 成果详情（公开）
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiProject'
+        '404':
+          description: 不存在或已下架
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    put:
+      tags: [project]
+      operationId: updateProject
+      summary: 编辑成果（作者本人或管理员）
+      description: 类型不可修改；不是作者也不是管理员时返回 403。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiProject'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: 不是作者也不是管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: 不存在或已下架
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    delete:
+      tags: [project]
+      operationId: removeProject
+      summary: 下架成果（作者本人或管理员）
+      description: 软下架：数据保留，状态置为 REMOVED，前台按不存在处理。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已下架
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '403':
+          description: 不是作者也不是管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: 不存在或已下架
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/learning-logs:
+    get:
+      tags: [learning]
+      operationId: listLearningLogs
+      summary: 某人的学习内容（公开）
+      security: []
+      parameters:
+        - name: username
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiLearningLogList'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    post:
+      tags: [learning]
+      operationId: createLearningLog
+      summary: 发布学习内容（需登录）
+      description: |
+        每篇 +10 分，**每天最多计 3 篇**；第 4 篇起照常入库但不加分（防刷分）。
+
+        响应里的 `counted / points / remainingToday` 就是给前端提示用的：
+        没加分时应当告诉用户"今日计分额度已用完，内容已保存"。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearningLogCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiLearningLogCreated'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/learning-logs/{id}:
+    get:
+      tags: [learning]
+      operationId: getLearningLog
+      summary: 学习内容详情（公开）
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiLearningLog'
+        '404':
+          description: 不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+    put:
+      tags: [learning]
+      operationId: updateLearningLog
+      summary: 编辑学习内容（作者本人或管理员）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LearningLogUpdateRequest'
+      responses:
+        '200':
+          description: 更新成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiLearningLog'
+        '403':
+          description: 不是作者也不是管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/uploads/images:
+    post:
+      tags: [upload]
+      operationId: uploadImage
+      summary: 上传图片（需登录）
+      description: |
+        按**文件头**（magic bytes）判断类型，不信扩展名也不信 Content-Type（S-05）。
+
+        - 允许：PNG / JPEG / GIF / WebP
+        - **禁止 SVG**：SVG 是 XML，可内嵌 script，是存储型 XSS 的常见载体
+        - 落盘用服务端生成的 UUID 文件名，不使用客户端文件名（防路径穿越与覆盖）
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 上传成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUploadedImage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
+  /api/v1/uploads/code:
+    post:
+      tags: [upload]
+      operationId: uploadCode
+      summary: 代码文件转 Markdown 代码块（需登录）
+      description: |
+        按扩展名识别语言（java / py / js / ts / sql / json / yml / sh / go / rs / ...），
+        返回拼好的 Markdown，不落盘。正文里已有 ``` 时自动改用更长的围栏。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: 转换成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiCodeBlock'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -502,6 +863,125 @@ components:
         totalPoints:
           type: integer
 
+    ProjectCreateRequest:
+      type: object
+      required: [type, title, description]
+      properties:
+        type:
+          type: string
+          enum: [PROJECT, CERTIFICATE, AWARD]
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        githubUrl:
+          type: [string, 'null']
+          maxLength: 300
+          description: PROJECT 必填；CERTIFICATE/AWARD 与 imageUrl 二者其一
+        contentMd:
+          type: [string, 'null']
+          description: PROJECT 必填
+        imageUrl:
+          type: [string, 'null']
+          maxLength: 500
+
+    ProjectUpdateRequest:
+      type: object
+      required: [title, description]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+        githubUrl:
+          type: [string, 'null']
+          maxLength: 300
+        contentMd:
+          type: [string, 'null']
+        imageUrl:
+          type: [string, 'null']
+          maxLength: 500
+
+    ProjectResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [PROJECT, CERTIFICATE, AWARD]
+        title:
+          type: string
+        description:
+          type: string
+        githubUrl:
+          type: [string, 'null']
+        contentMd:
+          type: [string, 'null']
+        imageUrl:
+          type: [string, 'null']
+        ownerUsername:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ProjectCardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [PROJECT, CERTIFICATE, AWARD]
+        title:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: [string, 'null']
+        githubUrl:
+          type: [string, 'null']
+        ownerUsername:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiProject:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          $ref: '#/components/schemas/ProjectResponse'
+        error:
+          type: 'null'
+
+    ApiProjectPage:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/ProjectCardResponse'
+            nextCursor:
+              type: [string, 'null']
+
     ApiHealth:
       type: object
       properties:
@@ -654,3 +1134,135 @@ components:
         createdAt:
           type: string
           format: date-time
+
+    LearningLogCreateRequest:
+      type: object
+      required: [type, title, contentMd]
+      properties:
+        type:
+          type: string
+          enum: [NOTE, CODE]
+        title:
+          type: string
+          maxLength: 200
+        contentMd:
+          type: string
+        summaryMd:
+          type: [string, 'null']
+
+    LearningLogUpdateRequest:
+      type: object
+      required: [title, contentMd]
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        contentMd:
+          type: string
+        summaryMd:
+          type: [string, 'null']
+
+    LearningLogResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+          enum: [NOTE, CODE]
+        title:
+          type: string
+        contentMd:
+          type: string
+        summaryMd:
+          type: [string, 'null']
+        logDate:
+          type: string
+          format: date
+        createdAt:
+          type: string
+          format: date-time
+        ownerUsername:
+          type: string
+
+    LearningLogCreatedResponse:
+      type: object
+      properties:
+        log:
+          $ref: '#/components/schemas/LearningLogResponse'
+        counted:
+          type: boolean
+          description: 这次发布是否计入积分
+        points:
+          type: integer
+          description: 本次获得的积分（未计入为 0）
+        remainingToday:
+          type: integer
+          description: 今天还剩几次计分额度
+
+    ApiLearningLog:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LearningLogResponse'
+
+    ApiLearningLogCreated:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/LearningLogCreatedResponse'
+
+    ApiLearningLogList:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/LearningLogResponse'
+
+    UploadedImage:
+      type: object
+      properties:
+        url:
+          type: string
+          example: /uploads/0192f0c4-....png
+        mime:
+          type: string
+          enum: [image/png, image/jpeg, image/gif, image/webp]
+        size:
+          type: integer
+
+    CodeBlock:
+      type: object
+      properties:
+        language:
+          type: string
+          example: python
+        markdown:
+          type: string
+          example: "```python\ndef hello():\n    pass\n```"
+        lines:
+          type: integer
+
+    ApiUploadedImage:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/UploadedImage'
+
+    ApiCodeBlock:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CodeBlock'

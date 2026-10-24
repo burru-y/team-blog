@@ -27,6 +27,45 @@ export type UserPage = {
   nextCursor: string | null;
 };
 
+export type ProjectCard = Required<components["schemas"]["ProjectCardResponse"]>;
+
+export type ProjectPage = {
+  items: ProjectCard[];
+  nextCursor: string | null;
+};
+
+export type ProjectResponse = Required<components["schemas"]["ProjectResponse"]>;
+
+export type LearningLogResponse = Required<components["schemas"]["LearningLogResponse"]>;
+
+export type LearningLogCreated = {
+  log: LearningLogResponse;
+  counted: boolean;
+  points: number;
+  remainingToday: number;
+};
+
+/** 发布成果的表单体（类型只允许这三种）。 */
+export type ProjectCreateBody = {
+  type: "PROJECT" | "CERTIFICATE" | "AWARD";
+  title: string;
+  description: string;
+  githubUrl?: string | null;
+  contentMd?: string | null;
+  imageUrl?: string | null;
+};
+
+export type LearningLogBody = {
+  type: "NOTE" | "CODE";
+  title: string;
+  contentMd: string;
+  summaryMd?: string | null;
+};
+
+export type UploadedImage = Required<components["schemas"]["UploadedImage"]>;
+
+export type CodeBlock = Required<components["schemas"]["CodeBlock"]>;
+
 export type LoginRequest = components["schemas"]["LoginRequest"];
 
 export type RegisterRequest = components["schemas"]["RegisterRequest"];

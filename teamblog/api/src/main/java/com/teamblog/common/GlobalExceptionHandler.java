@@ -5,6 +5,9 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
+import org.springframework.web.bind.MissingServletRequestParameterException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -56,6 +59,25 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiResponse<Void>> handleUnreadableBody(HttpMessageNotReadableException ex) {
         return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.status())
                 .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED.name(), "请求体格式不正确"));
+    }
+
+    /** 少传了必填的查询参数，或路径参数类型不对（比如 id 不是 UUID）。同样是客户端问题。 */
+    @ExceptionHandler({MissingServletRequestParameterException.class, MethodArgumentTypeMismatchException.class})
+    public ResponseEntity<ApiResponse<Void>> handleBadRequestParam(Exception ex) {
+        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.status())
+                .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED.name(), "参数缺失或格式不正确"));
+    }
+
+    /**
+     * 上传超过 multipart 上限。
+     *
+     * <p>这个异常在进入 Controller **之前**由 MultipartResolver 抛出，
+     * 不处理就会落到兜底分支变成 500——用户只是传了个大文件，却被告知"服务内部错误"。
+     */
+    @ExceptionHandler(MaxUploadSizeExceededException.class)
+    public ResponseEntity<ApiResponse<Void>> handleUploadTooLarge(MaxUploadSizeExceededException ex) {
+        return ResponseEntity.status(ErrorCode.VALIDATION_FAILED.status())
+                .body(ApiResponse.fail(ErrorCode.VALIDATION_FAILED.name(), "文件超过大小上限"));
     }
 
     @ExceptionHandler(Exception.class)

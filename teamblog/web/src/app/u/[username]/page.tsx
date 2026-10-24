@@ -39,6 +39,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   }
 
   const joined = new Date(profile.createdAt).toLocaleDateString("zh-CN");
+  const logs = await serverApi.listLearningLogs(profile.username);
 
   return (
     <div className="space-y-8">
@@ -87,14 +88,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">成果</CardTitle>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">
-            批次 3 上线后，这里会显示项目、证书与奖项。
-          </CardContent>
-        </Card>
+
+      </section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold">学习内容</h2>
+        {logs.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              还没有发布学习内容。
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-2">
+            {logs.map((log) => (
+              <Link
+                key={log.id}
+                href={`/learning/${log.id}`}
+                className="flex items-baseline justify-between rounded-lg border px-4 py-3 transition-colors hover:border-foreground/20"
+              >
+                <span className="font-medium">{log.title}</span>
+                <span className="text-xs text-muted-foreground">{log.logDate}</span>
+              </Link>
+            ))}
+          </div>
+        )}
       </section>
 
       <div>
