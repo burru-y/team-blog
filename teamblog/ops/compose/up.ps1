@@ -8,9 +8,15 @@
 #   3. docker compose up -d --build
 #   4. 等健康检查通过，然后打一次 /api/v1/health
 
+param(
+    # 强制重建镜像（改了 Dockerfile 或怀疑镜像过期时用）
+    [switch]$Force
+)
+
 $ErrorActionPreference = "Stop"
 
 $composeDir = $PSScriptRoot
+$repoRoot = Resolve-Path (Join-Path $composeDir "..\..\..")
 $opsDir = Split-Path $composeDir -Parent
 $envFile = Join-Path $composeDir ".env"    # compose 自动读取同目录下的 .env
 $dockerExe = "C:\Program Files\Docker\Docker\resources\bin\docker.exe"
@@ -90,10 +96,74 @@ if (-not (Test-Path $certFile) -or -not (Test-Path $keyFile)) {
     Write-Host "[up]      证书已存在"
 }
 
-Write-Host "[up] 4/5 构建并启动（首次会构建镜像，约 3-8 分钟）"
+# 每个服务参与构建的源码路径（相对仓库根）
+$buildSources = @{
+    "teamblog-api" = @("teamblog\api\src", "teamblog\api\pom.xml", "teamblog\api\Dockerfile", "teamblog\api\mvnw")
+    "teamblog-web" = @("teamblog\web\src", "teamblog\web\package.json", "teamblog\web\next.config.ts", "teamblog\web\Dockerfile")
+    "teamblog-ai"  = @("teamblog\ai\app", "teamblog\ai\requirements.txt", "teamblog\ai\Dockerfile")
+}
+
+function Get-NewestWriteTime($paths) {
+    $newest = [datetime]::MinValue
+    foreach ($relative in $paths) {
+        $full = Join-Path $repoRoot $relative
+        if (Test-Path $full) {
+            $item = Get-Item $full
+            if ($item.PSIsContainer) {
+                Get-ChildItem $full -Recurse -File -ErrorAction SilentlyContinue | ForEach-Object {
+                    if ($_.LastWriteTimeUtc -gt $newest) { $newest = $_.LastWriteTimeUtc }
+                }
+            } elseif ($item.LastWriteTimeUtc -gt $newest) {
+                $newest = $item.LastWriteTimeUtc
+            }
+        }
+    }
+    return $newest
+}
+
+function Get-BuildDecision($service, $paths) {
+    $image = & $dockerExe image inspect "${service}:latest" --format "{{.Created}}" 2>$null
+    if ($LASTEXITCODE -ne 0 -or -not $image) {
+        return @{ Build = $true; Reason = "镜像不存在" }
+    }
+    # docker 的 Created 形如 2026-10-24T13:42:32.123456789Z，截到秒再解析
+    $createdText = ([string]$image).Trim()
+    if ($createdText.Length -gt 19) { $createdText = $createdText.Substring(0, 19) }
+    $created = [datetime]::Parse($createdText, [Globalization.CultureInfo]::InvariantCulture, [Globalization.DateTimeStyles]::AdjustToUniversal)
+
+    $newest = Get-NewestWriteTime $paths
+    if ($newest -eq [datetime]::MinValue) {
+        return @{ Build = $false; Reason = "没有找到源码，跳过" }
+    }
+    # 留 2 秒余量：源码与镜像的时间戳常常只差几百毫秒
+    if ($created -gt $newest.AddSeconds(-2)) {
+        return @{ Build = $false; Reason = "镜像比源码新" }
+    }
+    return @{ Build = $true; Reason = "源码比镜像新" }
+}
+
+Write-Host "[up] 4/5 构建并启动"
+$needBuild = $false
+foreach ($service in $buildSources.Keys) {
+    if ($Force) {
+        Write-Host ("      {0,-14} 强制重建（-Force）" -f $service)
+        $needBuild = $true
+        continue
+    }
+    $decision = Get-BuildDecision $service $buildSources[$service]
+    Write-Host ("      {0,-14} {1}" -f $service, $decision.Reason)
+    if ($decision.Build) { $needBuild = $true }
+}
+
 Push-Location $composeDir
 try {
-    & $dockerExe compose up -d --build
+    if ($needBuild) {
+        Write-Host "      执行构建（首次约 3 到 8 分钟，增量构建通常 1 分钟内）"
+        & $dockerExe compose up -d --build
+    } else {
+        Write-Host "      源码没有变化，跳过构建（约 10 秒）"
+        & $dockerExe compose up -d
+    }
     if ($LASTEXITCODE -ne 0) { throw "compose up 失败" }
 } finally {
     Pop-Location
