@@ -43,6 +43,10 @@ services:
       JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 必须设置（至少 32 字节）}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       UPLOAD_DIR: /app/uploads
+      # 限制 JVM 堆：容器上限继承宿主机（约 7.6G），默认堆按 25% 算会放任它长到 1.9G。
+      # 这套服务日常只需要一两百 MB，压到 320M 足够，也避免和 Docker Desktop 抢内存。
+      # 用绝对值而不是百分比：容器上限继承宿主机（7.6G），按百分比算仍是 GB 级。
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
       # 摘要服务：容器网络内直连 ai，外网访问不到（Nginx 对 /ai/v1/summarize 返回 403）
       # 首启引导：只在空库时生效；不设则不会创建任何账号
       ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME:-admin}
@@ -55,6 +59,8 @@ services:
     volumes:
       # 上传目录与 nginx 共享：api 写，nginx 直接读，静态文件不经过 Java
       - uploads:/app/uploads
+    # 内存上限：不给上限时容器继承宿主机全部内存，JVM 会按整机来规划堆
+    mem_limit: 768m
     expose:
       - "8080"
 
