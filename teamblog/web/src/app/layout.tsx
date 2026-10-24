@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "TeamBlog · 团队技术博客",
+  title: "TeamBlog（名称待定）· 团队技术博客",
   description: "团队的技术成果、学习记录与打卡热度（内测中）",
 };
 

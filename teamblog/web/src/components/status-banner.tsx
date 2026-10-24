@@ -53,6 +53,10 @@ export function StatusBanner() {
             。
           </p>
           <p>
+            <span className="font-medium">站点名称待定</span>
+            ：当前暂用「TeamBlog」，正式名称确定后统一替换；如果你有建议，欢迎一并反馈。
+          </p>
+          <p>
             <span className="font-medium">尚未部署服务器</span>
             ：站点目前运行在作者本机，通过临时隧道对外提供；正式上线需完成 ICP 备案，
             预计 1 至 2 周。
