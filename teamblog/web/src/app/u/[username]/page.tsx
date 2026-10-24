@@ -48,13 +48,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         <div className="flex items-center gap-4">
           <Avatar className="size-16">
             <AvatarFallback className="text-lg">
-              {profile.username.slice(0, 2).toUpperCase()}
+              {profile.displayName.slice(0, 2).toUpperCase()}
             </AvatarFallback>
           </Avatar>
 
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{profile.username}</h1>
+              <h1 className="text-2xl font-semibold tracking-tight">{profile.displayName}</h1>
+              {profile.displayName !== profile.username ? (
+                <span className="text-sm text-muted-foreground">@{profile.username}</span>
+              ) : null}
               <Badge variant={profile.role === "ADMIN" ? "default" : "secondary"}>
                 {profile.role === "ADMIN" ? "管理员" : "成员"}
               </Badge>

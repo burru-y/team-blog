@@ -28,6 +28,8 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [displayName, setDisplayName] = useState(profile.displayName ?? "");
+  const [username, setUsername] = useState(profile.username);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [githubUrl, setGithubUrl] = useState(profile.githubUrl ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
@@ -52,7 +54,7 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
     setSaving(true);
     setError(null);
     try {
-      await api.updateProfile({ bio, githubUrl, avatarUrl, emailPublic }, token);
+      await api.updateProfile({ displayName, username, bio, githubUrl, avatarUrl, emailPublic }, token);
       setOpen(false);
       router.refresh();
     } catch (err) {
@@ -83,6 +85,34 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
             <div className="space-y-1">
               <h2 className="text-lg font-semibold">编辑资料</h2>
               <p className="text-sm text-muted-foreground">修改后立即显示在个人主页上。</p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="displayName">显示名</Label>
+                <Input
+                  id="displayName"
+                  maxLength={30}
+                  value={displayName}
+                  placeholder="小张"
+                  onChange={(event) => setDisplayName(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">页头与主页显示这个，可以中文</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="username">用户名</Label>
+                <Input
+                  id="username"
+                  maxLength={20}
+                  value={username}
+                  placeholder="zhang_san"
+                  onChange={(event) => setUsername(event.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  3 到 20 位字母、数字、下划线；也是主页地址，改动后旧链接失效
+                </p>
+              </div>
             </div>
 
             <div className="space-y-2">

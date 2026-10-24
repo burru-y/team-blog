@@ -134,6 +134,72 @@ class ProfileUpdateIntegrationTest {
                 .andExpect(jsonPath("$.data.items.length()").value(0));
     }
 
+    @Test
+    void 修改显示名与用户名() throws Exception {
+        User user = persist("ren", Role.MEMBER);
+        String token = jwtService.issueAccessToken(user);
+        // 必须在改名前取旧名：改名后实体本身的值也变了
+        String oldName = user.getUsername();
+        String newName = "renamed" + UUID.randomUUID().toString().replace("-", "").substring(0, 4);
+
+        mockMvc.perform(patch("/api/v1/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"小张\",\"username\":\"" + newName + "\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayName").value("小张"))
+                .andExpect(jsonPath("$.data.username").value(newName));
+
+        // 新名字能查到，旧名字查不到
+        mockMvc.perform(get("/api/v1/users/" + newName)).andExpect(status().isOk());
+        mockMvc.perform(get("/api/v1/users/" + oldName)).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void 用户名重复返回409() throws Exception {
+        User first = persist("dup", Role.MEMBER);
+        User second = persist("dup", Role.MEMBER);
+
+        mockMvc.perform(patch("/api/v1/me")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(second))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"" + first.getUsername() + "\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.error.code").value("CONFLICT"));
+    }
+
+    @Test
+    void 用户名格式不合规返回400() throws Exception {
+        User user = persist("fmt", Role.MEMBER);
+
+        mockMvc.perform(patch("/api/v1/me")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(user))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"张三\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.error.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void 显示名为空时回退到用户名() throws Exception {
+        User user = persist("fall", Role.MEMBER);
+        String token = jwtService.issueAccessToken(user);
+
+        mockMvc.perform(patch("/api/v1/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"临时名字\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayName").value("临时名字"));
+
+        mockMvc.perform(patch("/api/v1/me")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"displayName\":\"\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.displayName").value(user.getUsername()));
+    }
+
     private void createProject(User owner, String token) throws Exception {
         mockMvc.perform(post("/api/v1/projects")
                         .header("Authorization", "Bearer " + token)

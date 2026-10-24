@@ -18,6 +18,8 @@ import java.util.UUID;
 public record UserResponse(
         UUID id,
         String username,
+        /** 显示名。为空时等于 username，前端不必再判空。 */
+        String displayName,
         String email,
         String role,
         String avatarUrl,
@@ -44,6 +46,9 @@ public record UserResponse(
         return new UserResponse(
                 user.getId(),
                 user.getUsername(),
+                user.getDisplayName() == null || user.getDisplayName().isBlank()
+                        ? user.getUsername()
+                        : user.getDisplayName(),
                 includeEmail ? user.getEmail() : null,
                 user.getRole().name(),
                 user.getAvatarUrl(),

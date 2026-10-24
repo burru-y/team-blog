@@ -35,7 +35,14 @@ public class User {
     @Id
     private UUID id;
 
-    @Column(nullable = false, length = 20, updatable = false)
+    /**
+     * 登录名，同时是 /u/{username} 的路由段，因此可改但有代价：旧链接会失效。
+     *
+     * <p>曾经是 updatable = false（当时没打算支持改名）。加改名功能时忘了这一点，
+     * 结果是 JPA 静默跳过 UPDATE：接口返回新名字、库里还是旧名字。
+     * 这类"内存改了、库里没改"的问题只有回查数据库才会暴露。
+     */
+    @Column(nullable = false, length = 20)
     private String username;
 
     @Column(nullable = false, length = 255)
@@ -55,6 +62,10 @@ public class User {
 
     @Column(name = "github_url", length = 300)
     private String githubUrl;
+
+    /** 显示名（昵称）。为空时接口回退到 username。 */
+    @Column(name = "display_name", length = 30)
+    private String displayName;
 
     @Column(name = "email_public", nullable = false)
     private boolean emailPublic;
@@ -129,11 +140,25 @@ public class User {
         return deletedAt != null;
     }
 
-    public void updateProfile(String avatarUrl, String bio, String githubUrl, boolean emailPublic) {
+    public void updateProfile(String avatarUrl, String bio, String githubUrl, boolean emailPublic,
+                              String displayName) {
         this.avatarUrl = avatarUrl;
         this.bio = bio;
         this.githubUrl = githubUrl;
         this.emailPublic = emailPublic;
+        this.displayName = displayName;
+    }
+
+    /**
+     * 改用户名。
+     *
+     * <p>单独一个方法而不是塞进 updateProfile：改名需要额外的唯一性检查，
+     * 调用方必须显式决定，不能顺手带着一起改。
+     *
+     * <p>不动 tokenVersion：JWT 的 sub 是用户 id，改名不影响已签发的令牌。
+     */
+    public void rename(String newUsername) {
+        this.username = normalizeUsername(newUsername);
     }
 
     /**

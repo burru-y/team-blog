@@ -119,7 +119,7 @@ class UserQueryIntegrationTest {
     @Test
     void 公开资料_emailPublic为true时返回邮箱() throws Exception {
         User user = persist("public_mail", false);
-        user.updateProfile(null, null, null, true);
+        user.updateProfile(null, null, null, true, null);
         userRepository.saveAndFlush(user);
 
         mockMvc.perform(get("/api/v1/users/" + user.getUsername()))

@@ -176,6 +176,42 @@ paths:
         '401':
           $ref: '#/components/responses/Unauthenticated'
 
+    patch:
+      tags: [user]
+      operationId: updateMyProfile
+      summary: 修改本人资料
+      description: |
+        只覆盖传入的字段，未传的保持原值（PATCH 语义）。
+        空字符串表示清空该字段。
+
+        修改用户名会影响 `/u/{username}` 链接，旧链接随即失效。
+        不修改 tokenVersion：JWT 的 sub 是用户 id，改名不影响已签发令牌。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateProfileRequest'
+      responses:
+        '200':
+          description: 修改后的资料
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUser'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '409':
+          description: 用户名已被占用
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
   /api/v1/admin/invites:
     post:
       tags: [invite]
@@ -379,6 +415,11 @@ paths:
             default: 20
             minimum: 1
             maximum: 100
+        - name: author
+          in: query
+          description: 按作者用户名筛选（个人主页用）；用户不存在时返回空列表
+          schema:
+            type: string
       responses:
         '200':
           description: 成功
@@ -1174,6 +1215,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+
   /api/v1/me/password:
     post:
       tags: [user]
@@ -1607,6 +1649,28 @@ components:
           format: email
           description: 邀请未指定邮箱时必填；指定了则忽略此字段
 
+    UpdateProfileRequest:
+      type: object
+      properties:
+        avatarUrl:
+          type: [string, 'null']
+          pattern: '^$|^https?://.+'
+        bio:
+          type: [string, 'null']
+          maxLength: 500
+        githubUrl:
+          type: [string, 'null']
+          pattern: '^$|^https?://.+'
+        emailPublic:
+          type: [boolean, 'null']
+        displayName:
+          type: [string, 'null']
+          maxLength: 30
+        username:
+          type: [string, 'null']
+          pattern: '^$|^[A-Za-z0-9_]{3,20}$'
+          description: 登录名，同时是 /u/{username} 的路由段；修改后旧链接失效
+
     UserResponse:
       type: object
       properties:
@@ -1615,6 +1679,9 @@ components:
           format: uuid
         username:
           type: string
+        displayName:
+          type: string
+          description: 显示名（昵称）。为空时等于 username
         email:
           type: [string, 'null']
           description: 本人视角返回真实邮箱；公开视角仅当 emailPublic=true 时返回

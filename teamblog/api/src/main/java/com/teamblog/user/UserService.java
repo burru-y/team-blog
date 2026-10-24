@@ -107,7 +107,23 @@ public class UserService {
         String githubUrl = request.githubUrl() != null ? blankToNull(request.githubUrl()) : user.getGithubUrl();
         boolean emailPublic = request.emailPublic() != null ? request.emailPublic() : user.isEmailPublic();
 
-        user.updateProfile(avatarUrl, bio, githubUrl, emailPublic);
+        String displayName = request.displayName() != null
+                ? blankToNull(request.displayName())
+                : user.getDisplayName();
+
+        // 改名要单独处理：归一化之后比对唯一性，同名视为无操作
+        String newUsername = blankToNull(request.username());
+        if (newUsername != null) {
+            String normalized = User.normalizeUsername(newUsername);
+            if (!normalized.equals(user.getUsername())) {
+                if (userRepository.existsByUsername(normalized)) {
+                    throw new BusinessException(ErrorCode.CONFLICT, "用户名已被占用");
+                }
+                user.rename(normalized);
+            }
+        }
+
+        user.updateProfile(avatarUrl, bio, githubUrl, emailPublic, displayName);
         return user;
     }
 

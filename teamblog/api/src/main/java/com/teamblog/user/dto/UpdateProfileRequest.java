@@ -7,11 +7,11 @@ import jakarta.validation.constraints.Size;
  * 修改本人资料。
  *
  * <p>全字段可空：只传要改的字段，未传的保持原值（PATCH 语义）。
- * 这样前端可以只提交改动项，不必先读回全部字段再整体覆盖。
  *
- * <p>为什么不开放修改用户名与邮箱：用户名是路由的一部分（`/u/{username}`），
- * 改了等于让旧链接全部失效；邮箱涉及唯一性与邀请绑定，属于账号迁移问题，
- * 不适合用一个 PATCH 顺手完成。
+ * <p>用户名可改，但要满足与注册相同的格式约束。改名会影响 `/u/{username}` 的链接，
+ * 旧链接会失效，前端在提交前提示这一点。
+ *
+ * <p>邮箱不可改：它涉及唯一性与邀请绑定，属于账号迁移问题，不适合用一个 PATCH 完成。
  */
 public record UpdateProfileRequest(
         @Size(max = 200, message = "头像地址过长")
@@ -25,6 +25,14 @@ public record UpdateProfileRequest(
         @Pattern(regexp = "^$|^https?://.+", message = "链接必须是 http(s) 地址")
         String githubUrl,
 
-        Boolean emailPublic
+        Boolean emailPublic,
+
+        /** 显示名：可以中文、空格。为空表示回退到用户名。 */
+        @Size(max = 30, message = "显示名不能超过 30 字")
+        String displayName,
+
+        /** 登录名：与注册同一套规则（3 到 20 位小写字母、数字、下划线）。 */
+        @Pattern(regexp = "^$|^[A-Za-z0-9_]{3,20}$", message = "用户名只能是 3 到 20 位字母、数字或下划线")
+        String username
 ) {
 }

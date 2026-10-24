@@ -100,7 +100,15 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        /**
+         * 修改本人资料
+         * @description 只覆盖传入的字段，未传的保持原值（PATCH 语义）。
+         *     空字符串表示清空该字段。
+         *
+         *     修改用户名会影响 `/u/{username}` 链接，旧链接随即失效。
+         *     不修改 tokenVersion：JWT 的 sub 是用户 id，改名不影响已签发令牌。
+         */
+        patch: operations["updateMyProfile"];
         trace?: never;
     };
     "/api/v1/admin/invites": {
@@ -822,10 +830,21 @@ export interface components {
              */
             email?: string | null;
         };
+        UpdateProfileRequest: {
+            avatarUrl?: string | null;
+            bio?: string | null;
+            githubUrl?: string | null;
+            emailPublic?: boolean | null;
+            displayName?: string | null;
+            /** @description 登录名，同时是 /u/{username} 的路由段；修改后旧链接失效 */
+            username?: string | null;
+        };
         UserResponse: {
             /** Format: uuid */
             id?: string;
             username?: string;
+            /** @description 显示名（昵称）。为空时等于 username */
+            displayName?: string;
             /** @description 本人视角返回真实邮箱；公开视角仅当 emailPublic=true 时返回 */
             email?: string | null;
             /** @enum {string} */
@@ -1210,6 +1229,41 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
         };
     };
+    updateMyProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description 修改后的资料 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiUser"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
+            /** @description 用户名已被占用 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     createInvite: {
         parameters: {
             query?: never;
@@ -1390,6 +1444,8 @@ export interface operations {
             query?: {
                 cursor?: string;
                 limit?: number;
+                /** @description 按作者用户名筛选（个人主页用）；用户不存在时返回空列表 */
+                author?: string;
             };
             header?: never;
             path?: never;
