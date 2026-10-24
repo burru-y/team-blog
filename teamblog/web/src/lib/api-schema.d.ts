@@ -445,6 +445,131 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/comments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 某条内容的评论（公开）
+         * @description 返回两级结构：一级评论带 `replies`。
+         *
+         *     软删的评论有两种表现：有回复的保留节点（`deleted=true`、`content=null`），
+         *     没有回复的整条不返回。
+         */
+        get: operations["listComments"];
+        put?: never;
+        /**
+         * 发表评论或回复（需登录）
+         * @description 只支持两级：`parentId` 指向一级评论。给一条回复再加回复返回 422 `RULE_VIOLATED`
+         *     （数据库触发器也会拦，这里是给人看的错误信息）。
+         */
+        post: operations["createComment"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/comments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 删除评论（作者本人或管理员）
+         * @description 软删：保留数据，列表里显示为已删除（有回复时）或直接消失。
+         */
+        delete: operations["deleteComment"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 提交留言（公开）
+         * @description 全站唯一不需要登录的写接口，靠两层防护：
+         *
+         *     - **蜜罐**：`website` 字段正常用户看不见，机器人会填。填了也返回 200，但什么也不存
+         *       （返回 4xx 等于告诉对方"你被识别了"）
+         *     - **限流**：同一 IP 每小时 3 条，超出 429 + Retry-After
+         *
+         *     IP 只存 SHA-256 哈希，不留明文（P-14）。
+         */
+        post: operations["submitFeedback"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 留言箱（管理员） */
+        get: operations["listFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/count": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 未读留言数（管理员） */
+        get: operations["countUnreadFeedback"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/feedback/{id}/read": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** 标记留言已读（管理员） */
+        post: operations["markFeedbackRead"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -779,6 +904,56 @@ export interface components {
         ApiReconciliationReport: {
             ok?: boolean;
             data?: components["schemas"]["ReconciliationReport"];
+        };
+        CommentCreateRequest: {
+            /** @enum {string} */
+            targetType: "PROJECT" | "LEARNING_LOG";
+            /** Format: uuid */
+            targetId: string;
+            /** Format: uuid */
+            parentId?: string | null;
+            content: string;
+        };
+        CommentResponse: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+            /** @description 已删除时为 null */
+            content?: string | null;
+            deleted?: boolean;
+            /** Format: date-time */
+            createdAt?: string;
+            replies?: components["schemas"]["CommentResponse"][];
+        };
+        ApiComment: {
+            ok?: boolean;
+            data?: components["schemas"]["CommentResponse"];
+        };
+        ApiCommentList: {
+            ok?: boolean;
+            data?: components["schemas"]["CommentResponse"][];
+        };
+        FeedbackCreateRequest: {
+            name: string;
+            email?: string | null;
+            content: string;
+            /** @description 蜜罐字段。正常用户留空；有值即视为机器人，静默丢弃 */
+            website?: string | null;
+        };
+        FeedbackResponse: {
+            /** Format: uuid */
+            id?: string;
+            name?: string;
+            email?: string | null;
+            content?: string;
+            /** @enum {string} */
+            status?: "NEW" | "READ" | "ARCHIVED";
+            /** Format: date-time */
+            createdAt?: string;
+        };
+        ApiFeedbackList: {
+            ok?: boolean;
+            data?: components["schemas"]["FeedbackResponse"][];
         };
     };
     responses: {
@@ -1615,6 +1790,240 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             /** @description 需要管理员 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listComments: {
+        parameters: {
+            query: {
+                targetType: "PROJECT" | "LEARNING_LOG";
+                targetId: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiCommentList"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+        };
+    };
+    createComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CommentCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 创建成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiComment"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["Unauthenticated"];
+            /** @description 目标内容或父评论不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 试图回复一条回复 */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    deleteComment: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已删除 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiVoid"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 不是作者也不是管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 评论不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    submitFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FeedbackCreateRequest"];
+            };
+        };
+        responses: {
+            /** @description 已受理（蜜罐命中时同样返回这个） */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiVoid"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            /** @description 留言太频繁 */
+            429: {
+                headers: {
+                    /** @description 还需要等待的秒数 */
+                    "Retry-After"?: number;
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    listFeedback: {
+        parameters: {
+            query?: {
+                status?: "NEW" | "READ" | "ARCHIVED";
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiFeedbackList"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 需要管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    countUnreadFeedback: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok?: boolean;
+                        data?: {
+                            new?: number;
+                        };
+                    };
+                };
+            };
+        };
+    };
+    markFeedbackRead: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiVoid"];
+                };
+            };
+            /** @description 留言不存在 */
+            404: {
                 headers: {
                     [name: string]: unknown;
                 };

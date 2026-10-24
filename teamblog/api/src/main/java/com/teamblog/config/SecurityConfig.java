@@ -65,6 +65,10 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users", "/api/v1/users/**").permitAll()
                         // 成果流与详情：访客可见；发布/编辑/下架需要登录（归属校验在 Service）
                         .requestMatchers(HttpMethod.GET, "/api/v1/projects", "/api/v1/projects/**").permitAll()
+                        // 留言：访客可以提交（全站唯一无需登录的写接口，靠蜜罐 + 限流防刷）
+                        .requestMatchers(HttpMethod.POST, "/api/v1/feedback").permitAll()
+                        // 评论：公开阅读；发表与删除需要登录
+                        .requestMatchers(HttpMethod.GET, "/api/v1/comments").permitAll()
                         // 热力图：首页要展示团队活跃度，访客可看
                         .requestMatchers(HttpMethod.GET, "/api/v1/stats/heatmap").permitAll()
                         // 上传的文件：由静态资源处理器/Nginx 提供，访客可见

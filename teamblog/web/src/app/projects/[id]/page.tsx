@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -30,6 +31,10 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
     }
     throw error;
   }
+
+  const comments = await serverApi
+    .listComments("PROJECT", project.id)
+    .catch(() => []);
 
   return (
     <article className="space-y-6">
@@ -63,6 +68,8 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
       ) : null}
 
       {project.contentMd ? <Markdown>{project.contentMd}</Markdown> : null}
+
+      <Comments targetType="PROJECT" targetId={project.id} initial={comments} />
 
       <div className="flex items-center gap-3">
         <Link href="/projects" className={buttonVariants({ variant: "ghost" })}>

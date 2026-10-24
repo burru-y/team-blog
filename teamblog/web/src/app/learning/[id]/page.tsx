@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -28,6 +29,10 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
     throw error;
   }
 
+  const comments = await serverApi
+    .listComments("LEARNING_LOG", log.id)
+    .catch(() => []);
+
   return (
     <article className="space-y-6">
       <header className="space-y-3">
@@ -46,6 +51,8 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
       </header>
 
       <Markdown>{log.contentMd}</Markdown>
+
+      <Comments targetType="LEARNING_LOG" targetId={log.id} initial={comments} />
 
       <div>
         <Link href={`/u/${log.ownerUsername}`} className={buttonVariants({ variant: "ghost" })}>

@@ -31,6 +31,10 @@ tags:
     description: 文件上传
   - name: checkin
     description: 打卡与热力图
+  - name: comment
+    description: 评论与回复
+  - name: feedback
+    description: 留言反馈
   - name: admin
     description: 管理员
   - name: health
@@ -839,6 +843,244 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /api/v1/comments:
+    get:
+      tags: [comment]
+      operationId: listComments
+      summary: 某条内容的评论（公开）
+      description: |
+        返回两级结构：一级评论带 `replies`。
+
+        软删的评论有两种表现：有回复的保留节点（`deleted=true`、`content=null`），
+        没有回复的整条不返回。
+      security: []
+      parameters:
+        - name: targetType
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [PROJECT, LEARNING_LOG]
+        - name: targetId
+          in: query
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiCommentList'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+
+    post:
+      tags: [comment]
+      operationId: createComment
+      summary: 发表评论或回复（需登录）
+      description: |
+        只支持两级：`parentId` 指向一级评论。给一条回复再加回复返回 422 `RULE_VIOLATED`
+        （数据库触发器也会拦，这里是给人看的错误信息）。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreateRequest'
+      responses:
+        '201':
+          description: 创建成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiComment'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '404':
+          description: 目标内容或父评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '422':
+          description: 试图回复一条回复
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/comments/{id}:
+    delete:
+      tags: [comment]
+      operationId: deleteComment
+      summary: 删除评论（作者本人或管理员）
+      description: 软删：保留数据，列表里显示为已删除（有回复时）或直接消失。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: 不是作者也不是管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: 评论不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/feedback:
+    post:
+      tags: [feedback]
+      operationId: submitFeedback
+      summary: 提交留言（公开）
+      description: |
+        全站唯一不需要登录的写接口，靠两层防护：
+
+        - **蜜罐**：`website` 字段正常用户看不见，机器人会填。填了也返回 200，但什么也不存
+          （返回 4xx 等于告诉对方"你被识别了"）
+        - **限流**：同一 IP 每小时 3 条，超出 429 + Retry-After
+
+        IP 只存 SHA-256 哈希，不留明文（P-14）。
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreateRequest'
+      responses:
+        '200':
+          description: 已受理（蜜罐命中时同样返回这个）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '429':
+          description: 留言太频繁
+          headers:
+            Retry-After:
+              schema:
+                type: integer
+              description: 还需要等待的秒数
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/admin/feedback:
+    get:
+      tags: [feedback]
+      operationId: listFeedback
+      summary: 留言箱（管理员）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [NEW, READ, ARCHIVED]
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 50
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiFeedbackList'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+        '403':
+          description: 需要管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/admin/feedback/count:
+    get:
+      tags: [feedback]
+      operationId: countUnreadFeedback
+      summary: 未读留言数（管理员）
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      new:
+                        type: integer
+
+  /api/v1/admin/feedback/{id}/read:
+    post:
+      tags: [feedback]
+      operationId: markFeedbackRead
+      summary: 标记留言已读（管理员）
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '404':
+          description: 留言不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
 components:
   securitySchemes:
     bearerAuth:
@@ -1507,3 +1749,106 @@ components:
           type: boolean
         data:
           $ref: '#/components/schemas/ReconciliationReport'
+
+    CommentCreateRequest:
+      type: object
+      required: [targetType, targetId, content]
+      properties:
+        targetType:
+          type: string
+          enum: [PROJECT, LEARNING_LOG]
+        targetId:
+          type: string
+          format: uuid
+        parentId:
+          type: string
+          format: uuid
+          nullable: true
+        content:
+          type: string
+          maxLength: 2000
+
+    CommentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        content:
+          type: [string, 'null']
+          description: 已删除时为 null
+        deleted:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+        replies:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+
+    ApiComment:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          $ref: '#/components/schemas/CommentResponse'
+
+    ApiCommentList:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/CommentResponse'
+
+    FeedbackCreateRequest:
+      type: object
+      required: [name, content]
+      properties:
+        name:
+          type: string
+          maxLength: 50
+        email:
+          type: [string, 'null']
+          maxLength: 255
+        content:
+          type: string
+          maxLength: 2000
+        website:
+          type: [string, 'null']
+          description: 蜜罐字段。正常用户留空；有值即视为机器人，静默丢弃
+
+    FeedbackResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        email:
+          type: [string, 'null']
+        content:
+          type: string
+        status:
+          type: string
+          enum: [NEW, READ, ARCHIVED]
+        createdAt:
+          type: string
+          format: date-time
+
+    ApiFeedbackList:
+      type: object
+      properties:
+        ok:
+          type: boolean
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FeedbackResponse'

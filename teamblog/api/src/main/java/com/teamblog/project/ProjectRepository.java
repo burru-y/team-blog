@@ -20,6 +20,11 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
 
     Optional<Project> findByIdAndStatus(UUID id, ProjectStatus status);
 
+    /** 管理端：不按状态过滤，已下架的也要能看到（数据还在，只是前台不展示）。 */
+    List<Project> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    List<Project> findByStatusOrderByCreatedAtDesc(ProjectStatus status, Pageable pageable);
+
     @Query("""
             select p from Project p
              where p.status = :status

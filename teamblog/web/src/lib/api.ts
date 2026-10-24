@@ -1,5 +1,11 @@
 import type {
+  AdminFeedback,
+  AdminProject,
   CheckinResult,
+  InviteCreated,
+  CommentBody,
+  FeedbackBody,
+  CommentResponse,
   CheckinStatus,
   CodeBlock,
   Envelope,
@@ -140,7 +146,61 @@ export const api = {
     return request<CheckinStatus>("/api/v1/checkins/status", { token });
   },
 
+  /** 留言：公开接口，不需要 token。网站字段是蜜罐，正常留空。 */
+  submitFeedback(body: FeedbackBody): Promise<null> {
+    return request<null>("/api/v1/feedback", { method: "POST", body });
+  },
+
+  listComments(targetType: "PROJECT" | "LEARNING_LOG", targetId: string): Promise<CommentResponse[]> {
+    return request<CommentResponse[]>(
+      `/api/v1/comments?targetType=${targetType}&targetId=${encodeURIComponent(targetId)}`,
+    );
+  },
+
+  createComment(body: CommentBody, token: string): Promise<CommentResponse> {
+    return request<CommentResponse>("/api/v1/comments", { method: "POST", body, token });
+  },
+
+  deleteComment(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/comments/${encodeURIComponent(id)}`, { method: "DELETE", token });
+  },
+
   /** 打卡。今天已打过会抛 ALREADY_CHECKED_IN（409），属于正常情况。 */
+  // ---------- 管理端 ----------
+
+  adminUsers(token: string): Promise<UserResponse[]> {
+    return request<UserResponse[]>("/api/v1/admin/users", { token });
+  },
+
+  changeRole(id: string, role: "ADMIN" | "MEMBER", token: string): Promise<UserResponse> {
+    return request<UserResponse>(`/api/v1/admin/users/${encodeURIComponent(id)}/role`, {
+      method: "PATCH",
+      body: { role },
+      token,
+    });
+  },
+
+  createInvite(payload: { email?: string | null; role: "ADMIN" | "MEMBER" }, token: string): Promise<InviteCreated> {
+    return request<InviteCreated>("/api/v1/admin/invites", { method: "POST", body: payload, token });
+  },
+
+  adminProjects(status: "ACTIVE" | "REMOVED" | undefined, token: string): Promise<AdminProject[]> {
+    const query = status ? `?status=${status}` : "";
+    return request<AdminProject[]>(`/api/v1/admin/projects${query}`, { token });
+  },
+
+  adminFeedback(status: "NEW" | "READ" | undefined, token: string): Promise<AdminFeedback[]> {
+    const query = status ? `?status=${status}` : "";
+    return request<AdminFeedback[]>(`/api/v1/admin/feedback${query}`, { token });
+  },
+
+  markFeedbackRead(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/admin/feedback/${encodeURIComponent(id)}/read`, {
+      method: "POST",
+      token,
+    });
+  },
+
   checkin(note: string | null, token: string): Promise<CheckinResult> {
     return request<CheckinResult>("/api/v1/checkins", {
       method: "POST",

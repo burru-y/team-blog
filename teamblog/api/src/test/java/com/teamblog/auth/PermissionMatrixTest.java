@@ -119,6 +119,35 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.POST, "/api/v1/learning-logs", Role.MEMBER, 400),
                 new Case(HttpMethod.PUT, "/api/v1/learning-logs/{id}", null, 401),
 
+                // 公开：留言（空 body 400，证明没被安全链拦；蜜罐/限流在 Service）
+                new Case(HttpMethod.POST, "/api/v1/feedback", null, 400),
+
+                // 管理员专属：成员与成果管理
+                new Case(HttpMethod.GET, "/api/v1/admin/users", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/admin/users", Role.MEMBER, 403),
+                new Case(HttpMethod.GET, "/api/v1/admin/users", Role.ADMIN, 200),
+                new Case(HttpMethod.PATCH, "/api/v1/admin/users/{id}/role", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/admin/projects", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/admin/projects", Role.MEMBER, 403),
+                new Case(HttpMethod.GET, "/api/v1/admin/projects", Role.ADMIN, 200),
+
+                // 管理员专属：留言箱
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback", Role.MEMBER, 403),
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback", Role.ADMIN, 200),
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback/count", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback/count", Role.MEMBER, 403),
+                new Case(HttpMethod.GET, "/api/v1/admin/feedback/count", Role.ADMIN, 200),
+                new Case(HttpMethod.POST, "/api/v1/admin/feedback/{id}/read", null, 401),
+
+                // 公开：评论列表（缺参数 400，证明没被安全链拦）
+                new Case(HttpMethod.GET, "/api/v1/comments", null, 400),
+
+                // 评论：发表与删除需要登录
+                new Case(HttpMethod.POST, "/api/v1/comments", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/comments", Role.MEMBER, 400),
+                new Case(HttpMethod.DELETE, "/api/v1/comments/{id}", null, 401),
+
                 // 公开：团队热力图
                 new Case(HttpMethod.GET, "/api/v1/stats/heatmap", null, 200),
 

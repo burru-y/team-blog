@@ -1,5 +1,6 @@
 import { pageQuery, request } from "./api";
 import type {
+  CommentResponse,
   HeatmapResponse,
   LearningLogResponse,
   ProjectPage,
@@ -42,6 +43,13 @@ export const serverApi = {
 
   getProject(id: string): Promise<ProjectResponse> {
     return request<ProjectResponse>(`/api/v1/projects/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  listComments(targetType: "PROJECT" | "LEARNING_LOG", targetId: string): Promise<CommentResponse[]> {
+    return request<CommentResponse[]>(
+      `/api/v1/comments?targetType=${targetType}&targetId=${encodeURIComponent(targetId)}`,
+      { base: ORIGIN },
+    );
   },
 
   /** 热力图：不给 username 是团队视角，给了是个人视角。 */

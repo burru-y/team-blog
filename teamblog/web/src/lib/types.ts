@@ -61,6 +61,49 @@ export type UploadedImage = Required<components["schemas"]["UploadedImage"]>;
 
 export type CodeBlock = Required<components["schemas"]["CodeBlock"]>;
 
+export type CommentResponse = {
+  id: string;
+  username: string;
+  content: string | null;
+  deleted: boolean;
+  createdAt: string;
+  replies: CommentResponse[];
+};
+
+export type AdminProject = {
+  id: string;
+  type: string;
+  title: string;
+  ownerUsername: string;
+  status: "ACTIVE" | "REMOVED";
+  createdAt: string;
+  removedAt: string | null;
+};
+
+export type AdminFeedback = {
+  id: string;
+  name: string;
+  email: string | null;
+  content: string;
+  status: "NEW" | "READ" | "ARCHIVED";
+  createdAt: string;
+};
+
+export type FeedbackBody = {
+  name: string;
+  email?: string | null;
+  content: string;
+  /** 蜜罐：正常用户永远为空 */
+  website?: string;
+};
+
+export type CommentBody = {
+  targetType: "PROJECT" | "LEARNING_LOG";
+  targetId: string;
+  parentId?: string | null;
+  content: string;
+};
+
 export type CheckinResult = Required<components["schemas"]["CheckinResult"]>;
 
 export type CheckinStatus = Required<components["schemas"]["CheckinStatus"]>;
