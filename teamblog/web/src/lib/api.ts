@@ -149,7 +149,7 @@ export const api = {
   },
 
   /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
-  /** 生成摘要（不落库，前端自己决定要不要保存）。 */
+  /** 生成摘要（服务端会写回数据库，返回的文本同时给前端展示）。 */
   summarizeLearningLog(id: string, token: string): Promise<{ summary: string }> {
     return request<{ summary: string }>(
       `/api/v1/learning-logs/${encodeURIComponent(id)}/summarize`,
