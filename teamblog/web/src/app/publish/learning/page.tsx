@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
+import { PublishTabs } from "@/components/publish-tabs";
 import { useSession } from "@/lib/session";
 
 /**
@@ -106,6 +107,8 @@ export default function PublishLearningPage() {
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
+      <PublishTabs />
+
       <header className="space-y-2">
         <h1 className="text-2xl font-semibold tracking-tight">写学习内容</h1>
         <p className="text-sm text-muted-foreground">

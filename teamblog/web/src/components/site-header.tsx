@@ -45,9 +45,17 @@ export function SiteHeader() {
             留言
           </Link>
           {user ? (
-            <Link href="/publish" className="text-sm text-muted-foreground hover:text-foreground">
-              发布
-            </Link>
+            <>
+              <Link
+                href="/publish/learning"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                写笔记
+              </Link>
+              <Link href="/publish" className="text-sm text-muted-foreground hover:text-foreground">
+                发布
+              </Link>
+            </>
           ) : null}
           {user?.role === "ADMIN" ? (
             <Link href="/admin" className="text-sm text-muted-foreground hover:text-foreground">
