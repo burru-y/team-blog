@@ -26,7 +26,7 @@ const DEVELOPERS = [{ name: "burru-y", github: "https://github.com/burru-y" }];
 export function SiteFooter() {
   return (
     <footer className="mt-16 border-t bg-muted/30">
-      <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-8 text-sm">
+      <div className="mx-auto w-full max-w-6xl space-y-6 px-6 py-10 text-sm">
         <div className="flex flex-wrap items-center gap-2">
           <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-400">
             内测中

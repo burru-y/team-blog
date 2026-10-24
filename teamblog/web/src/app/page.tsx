@@ -37,15 +37,44 @@ export default async function HomePage() {
   // 热力图是团队视角：不给 username。失败不该让首页整页挂掉，所以单独兜住
   const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
 
+  const checkin = heatmap ? Object.values(heatmap.days).reduce((sum, n) => sum + n, 0) : 0;
+  const activeDays = heatmap ? Object.keys(heatmap.days).length : 0;
+
   return (
-    <div className="space-y-10">
-      <section className="space-y-4">
-        <Badge variant="outline">一期 · 内测</Badge>
-        <h1 className="text-4xl font-semibold tracking-tight">团队技术博客</h1>
-        <p className="max-w-2xl text-muted-foreground">
-          记录团队的技术成果、学习内容与每天的学习打卡。成员可以发布项目与学习笔记，
-          访客可以浏览公开内容并向 AI 提问。
+    <div className="space-y-12">
+      <section className="animate-fade-up space-y-6 pt-6">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="outline">一期 · 内测</Badge>
+          <Badge variant="secondary">名称待定</Badge>
+        </div>
+
+        <h1 className="max-w-3xl text-4xl leading-[1.15] font-semibold sm:text-5xl">
+          团队技术博客
+          <span className="block text-muted-foreground">
+            记录每一次把问题想清楚的<span className="text-brand">过程</span>。
+          </span>
+        </h1>
+
+        <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
+          成员在这里发布项目成果与学习笔记，每天打卡积累积分；
+          访客可以浏览公开内容，并就任意项目向 AI 提问。
         </p>
+
+        <div className="flex flex-wrap gap-3">
+          <Link href="/projects" className={buttonVariants()}>
+            看看成果
+          </Link>
+          <Link href="/publish/learning" className={buttonVariants({ variant: "outline" })}>
+            写篇笔记
+          </Link>
+        </div>
+
+        <dl className="grid grid-cols-2 gap-4 border-t pt-6 sm:grid-cols-4">
+          <Stat label="成员" value={page.items.length} />
+          <Stat label="打卡天数" value={activeDays} />
+          <Stat label="累计打卡" value={checkin} />
+          <Stat label="当前版本" value="v1.0" text />
+        </dl>
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
@@ -80,7 +109,7 @@ export default async function HomePage() {
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {page.items.map((member) => (
-              <Card key={member.id} className="transition-colors hover:border-foreground/20">
+              <Card key={member.id} className="card-lift hover:card-lift-hover hover:border-foreground/20">
                 <CardHeader className="flex-row items-center gap-3 space-y-0">
                   <Avatar className="size-10">
                     <AvatarFallback>{(member.displayName ?? member.username).slice(0, 2).toUpperCase()}</AvatarFallback>
@@ -141,7 +170,7 @@ export default async function HomePage() {
           {VERSIONS.map((item) => (
             <div
               key={item.version}
-              className="flex flex-wrap items-baseline gap-2 rounded-lg border px-4 py-3"
+              className="card-lift flex flex-wrap items-baseline gap-2 rounded-lg border px-4 py-3 hover:card-lift-hover"
             >
               <span className="font-mono text-sm">{item.version}</span>
               <span className="font-medium">{item.name}</span>
@@ -154,6 +183,17 @@ export default async function HomePage() {
           ))}
         </div>
       </section>
+    </div>
+  );
+}
+/** Hero 区的小统计项。value 为数字时按等宽数字排版，避免跳动。 */
+function Stat({ label, value, text }: { label: string; value: number | string; text?: boolean }) {
+  return (
+    <div className="space-y-1">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className={text ? "text-2xl font-semibold" : "text-2xl font-semibold tabular-nums"}>
+        {value}
+      </dd>
     </div>
   );
 }
