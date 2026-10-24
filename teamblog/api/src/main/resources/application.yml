@@ -40,7 +40,7 @@ jwt:
   issuer: teamblog
   access-ttl: 30m                 # access token 30 分钟
   refresh-ttl: 7d                 # refresh token 7 天（httpOnly Cookie）
-  cookie-secure: false            # 生产必须 true（HTTPS），由环境变量覆盖
+  cookie-secure: ${COOKIE_SECURE:false}      # 生产必须 true（HTTPS）
   # 不给默认值：缺 JWT_SECRET 时启动直接失败，避免"开发密钥上线"（S-07）
   secret: ${JWT_SECRET:}
 
@@ -53,7 +53,7 @@ invite:
   ttl: 7d                         # 邀请链接有效期；过期后兑换返回 410
 
 upload:
-  dir: ./uploads
+  dir: ${UPLOAD_DIR:./uploads}         # 容器里挂成 /app/uploads
   max-image-size: 5MB
   max-code-size: 256KB
 

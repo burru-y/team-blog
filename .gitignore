@@ -31,3 +31,7 @@
 **/.vscode/
 .DS_Store
 Thumbs.db
+
+# 数据库备份（含真实数据，绝不入库）
+teamblog/backup/
+
