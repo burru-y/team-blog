@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { SiteFooter } from "@/components/site-footer";
+import { StatusBanner } from "@/components/status-banner";
 import { SiteHeader } from "@/components/site-header";
 import { SessionProvider } from "@/lib/session";
 import { Toaster } from "@/components/ui/sonner";
@@ -33,6 +34,7 @@ export default function RootLayout({
         {/* SessionProvider 必须包住 Header 与页面：Header 要读登录态 */}
         <SessionProvider>
           <SiteHeader />
+          <StatusBanner />
           <main className="mx-auto w-full max-w-5xl px-4 py-10">{children}</main>
           <SiteFooter />
           <Toaster position="top-center" />
