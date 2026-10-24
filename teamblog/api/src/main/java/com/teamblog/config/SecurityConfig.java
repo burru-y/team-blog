@@ -65,6 +65,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/users", "/api/v1/users/**").permitAll()
                         // 成果流与详情：访客可见；发布/编辑/下架需要登录（归属校验在 Service）
                         .requestMatchers(HttpMethod.GET, "/api/v1/projects", "/api/v1/projects/**").permitAll()
+                        // 热力图：首页要展示团队活跃度，访客可看
+                        .requestMatchers(HttpMethod.GET, "/api/v1/stats/heatmap").permitAll()
                         // 上传的文件：由静态资源处理器/Nginx 提供，访客可见
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
                         // 学习内容：公开阅读；发布/编辑需要登录

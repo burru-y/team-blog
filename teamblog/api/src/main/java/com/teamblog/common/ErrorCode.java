@@ -22,6 +22,8 @@ public enum ErrorCode {
     // 422 在 RFC 9110 里已改名为 Unprocessable Content，Spring 7 把旧常量标了 deprecated
     RULE_VIOLATED(HttpStatus.UNPROCESSABLE_CONTENT, "请求违反了业务规则"),
     CONFLICT(HttpStatus.CONFLICT, "资源冲突"),
+    /** 今天已经打过卡：这是正常的幂等拒绝，不是错误，所以文案写成陈述句。 */
+    ALREADY_CHECKED_IN(HttpStatus.CONFLICT, "今天已经打过卡了"),
     RATE_LIMITED(HttpStatus.TOO_MANY_REQUESTS, "请求过于频繁"),
     UPSTREAM_FAILED(HttpStatus.SERVICE_UNAVAILABLE, "上游服务不可用"),
     INTERNAL(HttpStatus.INTERNAL_SERVER_ERROR, "服务内部错误");

@@ -41,6 +41,44 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     @Query("update User u set u.totalPoints = u.totalPoints + :points where u.id = :id")
     int addPoints(@Param("id") UUID id, @Param("points") int points);
 
+    /**
+     * 对账：找出 total_points 与账本汇总不一致的用户。
+     *
+     * <p>为什么用 native SQL：跨表聚合 + HAVING 比较两个聚合值，JPQL 表达起来别扭，
+     * 而这条 SQL 是要长期被 DBA 拿去过一遍的，写成标准 SQL 更好读。
+     *
+     * <p>为什么需要它：total_points 是"缓存"，point_events 才是"事实"。
+     * 任何一次漏更新（异常、手工改库、并发 bug）都会让两者分叉，而分叉之后
+     * 用户的分数就再也对不上了——这就是账本存在的意义。
+     */
+    @Query(value = """
+            select u.id            as id,
+                   u.total_points  as recorded,
+                   coalesce(sum(e.points), 0) as computed
+              from users u
+              left join point_events e on e.user_id = u.id
+             group by u.id, u.total_points
+            having u.total_points <> coalesce(sum(e.points), 0)
+            """, nativeQuery = true)
+    List<PointsMismatch> findPointsMismatches();
+
+    /** 对账修正：把缓存改成账本算出来的值。 */
+    @Modifying
+    @Query("update User u set u.totalPoints = :value where u.id = :id")
+    int setTotalPoints(@Param("id") UUID id, @Param("value") int value);
+
+    /** 对账结果的行。字段名与 SQL 别名对应（record 也可，但接口更贴合投影）。 */
+    interface PointsMismatch {
+        UUID getId();
+
+        int getRecorded();
+
+        long getComputed();
+    }
+    /** 读总分：必须是查询而不是读实体，因为 addPoints 是批量 UPDATE，会绕过一级缓存。 */
+    @Query("select u.totalPoints from User u where u.id = :id")
+    Optional<Integer> findTotalPointsById(@Param("id") UUID id);
+
     /** 含已软删：占用检查必须看到它们，否则会在唯一键上冲突。 */
     boolean existsByUsername(String username);
 

@@ -119,6 +119,15 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.POST, "/api/v1/learning-logs", Role.MEMBER, 400),
                 new Case(HttpMethod.PUT, "/api/v1/learning-logs/{id}", null, 401),
 
+                // 公开：团队热力图
+                new Case(HttpMethod.GET, "/api/v1/stats/heatmap", null, 200),
+
+                // 打卡：需要登录（矩阵里只打一次，避免同一事务内重复 409）
+                new Case(HttpMethod.POST, "/api/v1/checkins", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/checkins", Role.MEMBER, 201),
+                new Case(HttpMethod.GET, "/api/v1/checkins/status", null, 401),
+                new Case(HttpMethod.GET, "/api/v1/checkins/status", Role.MEMBER, 200),
+
                 // 需要登录：上传（图片落盘 / 代码转 Markdown）
                 new Case(HttpMethod.POST, "/api/v1/uploads/images", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/uploads/code", null, 401),
@@ -133,6 +142,11 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/me", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.MEMBER, 200),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.ADMIN, 200),
+
+                // 管理员专属：手动触发积分对账
+                new Case(HttpMethod.POST, "/api/v1/admin/points/reconcile", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/admin/points/reconcile", Role.MEMBER, 403),
+                new Case(HttpMethod.POST, "/api/v1/admin/points/reconcile", Role.ADMIN, 200),
 
                 // 管理员专属
                 new Case(HttpMethod.POST, "/api/v1/admin/invites", null, 401),

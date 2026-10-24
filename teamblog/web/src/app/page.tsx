@@ -10,6 +10,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { CheckinCard } from "@/components/checkin-card";
+import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
 
 /**
@@ -31,6 +33,8 @@ export const dynamic = "force-dynamic";
  */
 export default async function HomePage() {
   const page = await serverApi.listMembers(undefined, 12);
+  // 热力图是团队视角：不给 username。失败不该让首页整页挂掉，所以单独兜住
+  const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
 
   return (
     <div className="space-y-10">
@@ -41,6 +45,23 @@ export default async function HomePage() {
           记录团队的技术成果、学习内容与每天的学习打卡。成员可以发布项目与学习笔记，
           访客可以浏览公开内容并向 AI 提问。
         </p>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="text-base">团队打卡</CardTitle>
+            <CardDescription>最近 17 周，颜色越深当天打卡的人越多</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {heatmap ? (
+              <Heatmap data={heatmap} emptyLabel="无人打卡" />
+            ) : (
+              <p className="text-sm text-muted-foreground">热力图暂时取不到数据。</p>
+            )}
+          </CardContent>
+        </Card>
+        <CheckinCard />
       </section>
 
       <section className="space-y-4">

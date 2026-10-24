@@ -1,5 +1,7 @@
 package com.teamblog.user;
 
+import com.teamblog.points.LevelCalculator;
+
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
@@ -23,6 +25,8 @@ public record UserResponse(
         String githubUrl,
         boolean emailPublic,
         int totalPoints,
+        /** 等级由总分推导（LevelCalculator）。放在后端算，前端就不必复制一份阈值表。 */
+        int level,
         OffsetDateTime createdAt
 ) {
 
@@ -47,6 +51,7 @@ public record UserResponse(
                 user.getGithubUrl(),
                 user.isEmailPublic(),
                 user.getTotalPoints(),
+                LevelCalculator.levelOf(user.getTotalPoints()),
                 user.getCreatedAt());
     }
 }

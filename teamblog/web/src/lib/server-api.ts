@@ -1,5 +1,6 @@
 import { pageQuery, request } from "./api";
 import type {
+  HeatmapResponse,
   LearningLogResponse,
   ProjectPage,
   ProjectResponse,
@@ -41,5 +42,14 @@ export const serverApi = {
 
   getProject(id: string): Promise<ProjectResponse> {
     return request<ProjectResponse>(`/api/v1/projects/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  /** 热力图：不给 username 是团队视角，给了是个人视角。 */
+  getHeatmap(username?: string, days = 120): Promise<HeatmapResponse> {
+    const params = new URLSearchParams({ days: String(days) });
+    if (username) {
+      params.set("username", username);
+    }
+    return request<HeatmapResponse>(`/api/v1/stats/heatmap?${params.toString()}`, { base: ORIGIN });
   },
 };

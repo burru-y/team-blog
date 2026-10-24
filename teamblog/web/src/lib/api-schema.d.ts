@@ -359,6 +359,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/checkins": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 今日打卡（需登录）
+         * @description 每天只能打一次，靠数据库唯一约束保证。
+         *
+         *     - 成功：201，返回 `streak`、`gained`（本次得分）、`totalPoints`、`level`
+         *     - 今天已打过：409 `ALREADY_CHECKED_IN`（这是幂等拒绝，不是错误，前端应置灰按钮）
+         *
+         *     连续第 7 / 14 / 30 天额外 +5 / +10 / +20。连续段奖励"每段只发一次"，
+         *     `ref_id` 用本段第一天，断签后开启新的一段可再获得。
+         */
+        post: operations["checkIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/checkins/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** 今日打卡状态（需登录） */
+        get: operations["getCheckinStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/stats/heatmap": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 打卡热力图（公开）
+         * @description 不给 `username` 是团队视角（每天多少人打卡），给了就是个人视角（0/1）。
+         *     只返回有数据的日子，没有的日期按 0 处理。
+         */
+        get: operations["getHeatmap"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/points/reconcile": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * 手动触发积分对账（管理员）
+         * @description 对比 `users.total_points` 与 `point_events` 的汇总，发现差异时打日志并按账本修正。
+         *
+         *     定时任务每天 03:10（Asia/Shanghai）自动跑一次；这个端点用于出问题时立刻验证。
+         */
+        post: operations["reconcilePoints"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -559,6 +645,8 @@ export interface components {
             githubUrl?: string | null;
             emailPublic?: boolean;
             totalPoints?: number;
+            /** @description 由总分推导的等级（0/50/150/300/600 分界） */
+            level?: number;
             /** Format: date-time */
             createdAt?: string;
         };
@@ -635,6 +723,62 @@ export interface components {
         ApiCodeBlock: {
             ok?: boolean;
             data?: components["schemas"]["CodeBlock"];
+        };
+        CheckinResult: {
+            /** Format: date */
+            checkinDate?: string;
+            /** @description 当前连续打卡天数 */
+            streak?: number;
+            /** @description 本次获得的总分（打卡 + 连续奖励） */
+            gained?: number;
+            totalPoints?: number;
+            level?: number;
+        };
+        CheckinStatus: {
+            checkedInToday?: boolean;
+            /** Format: date */
+            today?: string;
+            streak?: number;
+            totalPoints?: number;
+            level?: number;
+        };
+        HeatmapResponse: {
+            /** Format: date */
+            from?: string;
+            /** Format: date */
+            to?: string;
+            /** @description 日期（yyyy-MM-dd）→ 数值；缺失的日期视为 0 */
+            days?: {
+                [key: string]: number;
+            };
+        };
+        ApiCheckinResult: {
+            ok?: boolean;
+            data?: components["schemas"]["CheckinResult"];
+        };
+        ApiCheckinStatus: {
+            ok?: boolean;
+            data?: components["schemas"]["CheckinStatus"];
+        };
+        ApiHeatmap: {
+            ok?: boolean;
+            data?: components["schemas"]["HeatmapResponse"];
+        };
+        ReconciliationItem: {
+            /** Format: uuid */
+            userId?: string;
+            /** @description 修正前 total_points 里的值 */
+            recorded?: number;
+            /** @description 按账本算出来的值 */
+            computed?: number;
+        };
+        ReconciliationReport: {
+            mismatchCount?: number;
+            items?: components["schemas"]["ReconciliationItem"][];
+        };
+        ApiReconciliationReport: {
+            ok?: boolean;
+            data?: components["schemas"]["ReconciliationReport"];
         };
     };
     responses: {
@@ -1349,6 +1493,135 @@ export interface operations {
             };
             400: components["responses"]["ValidationFailed"];
             401: components["responses"]["Unauthenticated"];
+        };
+    };
+    checkIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": {
+                    note?: string;
+                };
+            };
+        };
+        responses: {
+            /** @description 打卡成功 */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiCheckinResult"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 今天已经打过卡 */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "ok": false,
+                     *       "data": null,
+                     *       "error": {
+                     *         "code": "ALREADY_CHECKED_IN",
+                     *         "message": "今天已经打过卡了"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    getCheckinStatus: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiCheckinStatus"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+        };
+    };
+    getHeatmap: {
+        parameters: {
+            query?: {
+                username?: string;
+                days?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiHeatmap"];
+                };
+            };
+            /** @description 用户不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    reconcilePoints: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 对账完成 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiReconciliationReport"];
+                };
+            };
+            401: components["responses"]["Unauthenticated"];
+            /** @description 需要管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
         };
     };
 }

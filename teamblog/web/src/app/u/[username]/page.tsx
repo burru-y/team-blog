@@ -10,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Heatmap } from "@/components/heatmap";
 import { ApiError } from "@/lib/api";
 import { serverApi } from "@/lib/server-api";
 
@@ -40,6 +41,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
   const joined = new Date(profile.createdAt).toLocaleDateString("zh-CN");
   const logs = await serverApi.listLearningLogs(profile.username);
+  const heatmap = await serverApi.getHeatmap(profile.username, 119).catch(() => null);
 
   return (
     <div className="space-y-8">
@@ -56,9 +58,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             <Badge variant={profile.role === "ADMIN" ? "default" : "secondary"}>
               {profile.role === "ADMIN" ? "管理员" : "成员"}
             </Badge>
+            <Badge variant="outline">Lv{profile.level}</Badge>
           </div>
           <p className="text-sm text-muted-foreground">
-            {profile.totalPoints} 分 · {joined} 加入
+            {profile.totalPoints} 分 · Lv{profile.level} · {joined} 加入
           </p>
         </div>
       </section>
@@ -89,6 +92,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
         </Card>
 
 
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="text-lg font-semibold">打卡记录</h2>
+        {heatmap ? (
+          <Heatmap data={heatmap} emptyLabel="没有打卡" />
+        ) : (
+          <p className="text-sm text-muted-foreground">暂时取不到打卡数据。</p>
+        )}
       </section>
 
       <section className="space-y-3">

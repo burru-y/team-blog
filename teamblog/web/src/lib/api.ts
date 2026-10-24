@@ -1,4 +1,6 @@
 import type {
+  CheckinResult,
+  CheckinStatus,
   CodeBlock,
   Envelope,
   ErrorCode,
@@ -131,6 +133,20 @@ export const api = {
   /** 代码文件 → Markdown 代码块。 */
   uploadCode(file: File, token: string): Promise<CodeBlock> {
     return requestForm<CodeBlock>("/api/v1/uploads/code", file, token);
+  },
+
+  /** 今日打卡状态（按钮置灰用）。 */
+  checkinStatus(token: string): Promise<CheckinStatus> {
+    return request<CheckinStatus>("/api/v1/checkins/status", { token });
+  },
+
+  /** 打卡。今天已打过会抛 ALREADY_CHECKED_IN（409），属于正常情况。 */
+  checkin(note: string | null, token: string): Promise<CheckinResult> {
+    return request<CheckinResult>("/api/v1/checkins", {
+      method: "POST",
+      body: { note },
+      token,
+    });
   },
 };
 
