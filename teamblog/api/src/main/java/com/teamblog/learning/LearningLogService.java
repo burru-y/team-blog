@@ -128,7 +128,8 @@ public class LearningLogService {
      * <p>AI 不可用时抛 502：这是**上游**故障，不是用户操作错误，
      * 用 500 会让人以为后端崩了，用 400 会让人去改输入。
      */
-    @Transactional(readOnly = true)
+    // 不能是 readOnly：要写回摘要。之前漏了这一点，接口返回了摘要但库里一直是空。
+    @Transactional
     public String summarize(UUID actorId, Role actorRole, UUID logId) {
         // 变量名不能叫 log：会遮蔽 @Slf4j 生成的静态 logger，编译期报
         // "cannot find symbol: method warn(...) on LearningLog"
@@ -140,7 +141,9 @@ public class LearningLogService {
         }
 
         try {
-            return aiSummaryClient.summarize(entry.getContentMd());
+            String summary = aiSummaryClient.summarize(entry.getContentMd());
+            entry.applySummary(summary);
+            return summary;
         } catch (AiSummaryClient.AiUnavailableException ex) {
             // 对外只说"暂时不可用"，但服务端必须留下真实原因（S-09）：
             // 否则排查时只能看到 503，连是超时、签名错还是解析失败都分不清

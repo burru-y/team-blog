@@ -151,6 +151,26 @@ class LearningLogIntegrationTest {
     }
 
     @Test
+    void 摘要生成后写回数据库() throws Exception {
+        User author = persistUser("sum_save");
+        LearningLogCreatedResponse created = learningLogService.create(author.getId(), aNote("要落库的摘要内容"));
+
+        when(aiSummaryClient.summarize(anyString())).thenReturn("落库的摘要。");
+
+        mockMvc.perform(post("/api/v1/learning-logs/" + created.log().id() + "/summarize")
+                        .header("Authorization", "Bearer " + jwtService.issueAccessToken(author)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.summary").value("落库的摘要。"));
+
+        // 关键断言：摘要必须写回库。曾经接口返回了摘要但库里一直是空，
+        // 只测响应会漏掉这类"看起来成功、实际没保存"的问题。
+        entityManager.flush();
+        entityManager.clear();
+        LearningLog saved = learningLogRepository.findById(created.log().id()).orElseThrow();
+        assertThat(saved.getSummaryMd()).isEqualTo("落库的摘要。");
+    }
+
+    @Test
     void 摘要_AI不可用时502() throws Exception {
         User author = persistUser("sum_fail");
         LearningLogCreatedResponse created = learningLogService.create(author.getId(), aNote("会失败的内容"));

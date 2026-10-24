@@ -47,8 +47,12 @@ async def complete(settings: Settings, prompt: str) -> str:
         "model": settings.member_model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2,
-        "max_tokens": 400,
+        # 预算给足：摘要正文 100 到 200 字，但模型若开了思考模式，
+        # 推理会先吃掉 token。曾经因为只给 400 且没关思考，返回了空摘要。
+        "max_tokens": 800,
         "stream": False,
+        # 和流式接口保持一致：显式传，不依赖服务端默认值
+        "thinking": {"type": settings.thinking},
     }
     try:
         async with httpx.AsyncClient(timeout=settings.request_timeout_seconds) as client:
@@ -59,7 +63,12 @@ async def complete(settings: Settings, prompt: str) -> str:
             )
             response.raise_for_status()
             data = response.json()
-            return data["choices"][0]["message"]["content"].strip()
+            content = (data["choices"][0]["message"].get("content") or "").strip()
+            if not content:
+                # 空正文是"模型没说话"，不是"摘要为空"。抛出去让 Spring 拿到 502，
+                # 而不是把空字符串当成合法摘要存下来。
+                raise ModelError("模型返回空内容")
+            return content
     except Exception as exc:  # noqa: BLE001 - 统一翻译成 ModelError
         raise ModelError(str(exc)) from exc
 

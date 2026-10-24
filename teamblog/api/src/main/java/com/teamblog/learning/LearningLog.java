@@ -69,6 +69,11 @@ public class LearningLog {
         return log;
     }
 
+    /** 写入 AI 生成的摘要。摘要是一次生成、多次读取的派生数据。 */
+    public void applySummary(String summary) {
+        this.summaryMd = summary;
+    }
+
     public void updateDetails(String title, String contentMd, String summaryMd) {
         this.title = Objects.requireNonNull(title, "title 不能为空");
         this.contentMd = Objects.requireNonNull(contentMd, "contentMd 不能为空");
