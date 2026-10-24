@@ -1465,6 +1465,9 @@ components:
           format: uuid
         username:
           type: string
+        displayName:
+          type: string
+          description: 显示名（昵称）。为空时等于 username
         role:
           type: string
           enum: [ADMIN, MEMBER]

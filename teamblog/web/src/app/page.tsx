@@ -82,13 +82,18 @@ export default async function HomePage() {
               <Card key={member.id} className="transition-colors hover:border-foreground/20">
                 <CardHeader className="flex-row items-center gap-3 space-y-0">
                   <Avatar className="size-10">
-                    <AvatarFallback>{member.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    <AvatarFallback>{(member.displayName ?? member.username).slice(0, 2).toUpperCase()}</AvatarFallback>
                   </Avatar>
                   <div className="min-w-0 flex-1">
-                    <CardTitle className="truncate text-base">
+                    <CardTitle className="flex items-baseline gap-2 truncate text-base">
                       <Link href={`/u/${member.username}`} className="hover:underline">
-                        {member.username}
+                        {member.displayName ?? member.username}
                       </Link>
+                      {member.displayName && member.displayName !== member.username ? (
+                        <span className="text-xs font-normal text-muted-foreground">
+                          @{member.username}
+                        </span>
+                      ) : null}
                     </CardTitle>
                     <CardDescription className="flex items-center gap-2">
                       <Badge variant={member.role === "ADMIN" ? "default" : "secondary"}>

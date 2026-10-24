@@ -67,10 +67,18 @@ export function SiteHeader() {
             <span className="text-sm text-muted-foreground">…</span>
           ) : user ? (
             <>
-              <Avatar className="size-8">
-                <AvatarFallback>{user.username.slice(0, 2).toUpperCase()}</AvatarFallback>
-              </Avatar>
-              <span className="hidden text-sm text-muted-foreground sm:inline">{user.username}</span>
+              <Link
+                href={`/u/${user.username}`}
+                className="flex items-center gap-2 rounded-full px-1 py-0.5 transition-colors hover:bg-muted"
+                title="进入我的主页"
+              >
+                <Avatar className="size-8">
+                  <AvatarFallback>{(user.displayName ?? user.username).slice(0, 2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <span className="hidden max-w-24 truncate text-sm text-muted-foreground sm:inline">
+                  {user.displayName ?? user.username}
+                </span>
+              </Link>
               <Button variant="ghost" size="sm" onClick={handleLogout}>
                 退出
               </Button>

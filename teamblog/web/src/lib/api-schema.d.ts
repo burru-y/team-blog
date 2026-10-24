@@ -708,6 +708,8 @@ export interface components {
             /** Format: uuid */
             id?: string;
             username?: string;
+            /** @description 显示名（昵称）。为空时等于 username */
+            displayName?: string;
             /** @enum {string} */
             role?: "ADMIN" | "MEMBER";
             avatarUrl?: string | null;
