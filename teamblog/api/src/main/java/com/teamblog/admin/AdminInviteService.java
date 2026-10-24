@@ -14,6 +14,7 @@ import java.security.SecureRandom;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.Base64;
+import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
 
@@ -33,6 +34,7 @@ public class AdminInviteService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final InviteProperties properties;
+    private final InviteRateLimiter rateLimiter;
     private final Clock clock;
     private final SecureRandom secureRandom = new SecureRandom();
 
@@ -40,11 +42,13 @@ public class AdminInviteService {
                               UserRepository userRepository,
                               PasswordEncoder passwordEncoder,
                               InviteProperties properties,
+                              InviteRateLimiter rateLimiter,
                               Clock clock) {
         this.inviteRepository = inviteRepository;
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.properties = properties;
+        this.rateLimiter = rateLimiter;
         this.clock = clock;
     }
 
@@ -55,6 +59,16 @@ public class AdminInviteService {
      */
     @Transactional
     public IssuedInvite create(UUID createdBy, String email, Role role) {
+        Long retryAfter = rateLimiter.checkAndRecord("admin:" + createdBy);
+        if (retryAfter != null) {
+            throw new BusinessException(ErrorCode.RATE_LIMITED,
+                    "签发过于频繁，请 " + retryAfter + " 秒后再试");
+        }
+
+        if (role == Role.ADMIN && !Boolean.TRUE.equals(properties.allowAdminRole())) {
+            throw new BusinessException(ErrorCode.FORBIDDEN, "当前不允许签发管理员邀请");
+        }
+
         String rawToken = newRawToken();
         AdminInvite invite = AdminInvite.create(
                 createdBy, HashUtils.sha256Hex(rawToken),
@@ -63,6 +77,29 @@ public class AdminInviteService {
         inviteRepository.save(invite);
         return new IssuedInvite(invite.getId(), rawToken, invite.getEmail(), invite.getRole(),
                 invite.getExpiresAt());
+    }
+
+    /** 邀请列表：管理员查看已签发的邀请及其状态。 */
+    @Transactional(readOnly = true)
+    public List<AdminInvite> list() {
+        return inviteRepository.findTop100ByOrderByCreatedAtDesc();
+    }
+
+    /**
+     * 撤销邀请。
+     *
+     * <p>已使用的邀请不能撤销：账号已经建出来了，"撤回邀请"没有任何意义，
+     * 需要的是删除账号，那是另一个动作。
+     */
+    @Transactional
+    public AdminInvite revoke(UUID inviteId) {
+        AdminInvite invite = inviteRepository.findById(inviteId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "邀请不存在"));
+        if (invite.isUsed()) {
+            throw new BusinessException(ErrorCode.CONFLICT, "已使用的邀请不能撤销");
+        }
+        invite.revoke(OffsetDateTime.now(clock));
+        return invite;
     }
 
     /** 注册页先查一次：让用户知道"这个链接是给谁的、还有效吗"。 */
@@ -110,6 +147,9 @@ public class AdminInviteService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.INVITE_INVALID, "邀请链接无效或已失效"));
         if (invite.isUsed()) {
             throw new BusinessException(ErrorCode.INVITE_INVALID, "邀请已被使用");
+        }
+        if (invite.isRevoked()) {
+            throw new BusinessException(ErrorCode.INVITE_INVALID, "邀请已被撤销");
         }
         if (invite.isExpired(OffsetDateTime.now(clock))) {
             throw new BusinessException(ErrorCode.INVITE_INVALID, "邀请已过期");

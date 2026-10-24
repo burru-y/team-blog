@@ -11,6 +11,9 @@ export type InviteInfo = Required<NonNullable<components["schemas"]["ApiInviteIn
 
 export type InviteCreated = Required<NonNullable<components["schemas"]["ApiInviteCreated"]["data"]>>;
 
+/** 邀请列表的一行（不含链接本身：库里只存哈希）。 */
+export type InviteSummary = Required<components["schemas"]["InviteSummary"]>;
+
 /** 成员列表里的一张卡片（列表不返回邮箱、等级等详情字段）。 */
 export type UserCard = Required<components["schemas"]["UserCardResponse"]>;
 

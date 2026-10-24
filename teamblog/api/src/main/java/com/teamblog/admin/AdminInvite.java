@@ -57,6 +57,10 @@ public class AdminInvite {
     @Column(name = "used_at")
     private OffsetDateTime usedAt;
 
+    /** 撤销时间。非空表示被管理员作废，与"过期"区分开。 */
+    @Column(name = "revoked_at")
+    private OffsetDateTime revokedAt;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
@@ -81,10 +85,47 @@ public class AdminInvite {
         return !expiresAt.isAfter(now);
     }
 
+    public boolean isRevoked() {
+        return revokedAt != null;
+    }
+
+    /**
+     * 邀请状态。判定有优先级：已用 > 已撤销 > 已过期 > 有效。
+     *
+     * <p>优先级不能乱：一张已用过的邀请即便也"过期了"，对外仍应显示已使用，
+     * 否则管理员会以为是自己撤销晚了。
+     */
+    public Status status(OffsetDateTime now) {
+        if (isUsed()) {
+            return Status.USED;
+        }
+        if (isRevoked()) {
+            return Status.REVOKED;
+        }
+        if (isExpired(now)) {
+            return Status.EXPIRED;
+        }
+        return Status.ACTIVE;
+    }
+
+    /** 撤销：只对未使用的邀请有意义，用过的不能被"撤回"。 */
+    public void revoke(OffsetDateTime now) {
+        if (isUsed()) {
+            throw new IllegalStateException("已使用的邀请不能撤销");
+        }
+        if (this.revokedAt == null) {
+            this.revokedAt = Objects.requireNonNull(now, "时间不能为空");
+        }
+    }
+
     /** 只用于"非并发"路径的语义表达；真正的原子占用在 Repository 的条件更新里。 */
     public void markUsed(OffsetDateTime now) {
         if (this.usedAt == null) {
             this.usedAt = Objects.requireNonNull(now, "时间不能为空");
         }
+    }
+
+    public enum Status {
+        ACTIVE, USED, EXPIRED, REVOKED
     }
 }

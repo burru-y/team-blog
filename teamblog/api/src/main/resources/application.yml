@@ -51,6 +51,10 @@ auth:
 
 invite:
   ttl: 7d                         # 邀请链接有效期；过期后兑换返回 410
+  # 是否允许签发 ADMIN 角色的邀请。默认关闭：发错群的代价是直接给出管理权限。
+  allow-admin-role: ${INVITE_ALLOW_ADMIN:false}
+  # 每个管理员每小时最多签发多少张
+  hourly-limit: 20
 
 # 首启管理员：只在"库里一个用户都没有"时生效（详情见 AdminBootstrap 注释）。
 # 故意不给默认密码——默认密码等于公开后门。

@@ -1,6 +1,7 @@
 package com.teamblog.admin;
 
 import com.teamblog.admin.dto.CreateInviteRequest;
+import com.teamblog.admin.dto.InviteSummaryResponse;
 import com.teamblog.admin.dto.InviteCreatedResponse;
 import com.teamblog.auth.AuthPrincipal;
 import com.teamblog.common.ApiResponse;
@@ -9,11 +10,17 @@ import com.teamblog.common.ErrorCode;
 import com.teamblog.user.Role;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.UUID;
 import java.util.Locale;
 
 /**
@@ -40,6 +47,23 @@ public class AdminInviteController {
         return ApiResponse.ok(new InviteCreatedResponse(
                 issued.id(), issued.rawToken(), issued.email(),
                 issued.role().name(), issued.expiresAt()));
+    }
+
+    /** 已签发的邀请列表（含状态）。管理员页面用。 */
+    @GetMapping
+    public ApiResponse<List<InviteSummaryResponse>> list() {
+        OffsetDateTime now = OffsetDateTime.now();
+        List<InviteSummaryResponse> items = inviteService.list().stream()
+                .map(invite -> InviteSummaryResponse.from(invite, now))
+                .toList();
+        return ApiResponse.ok(items);
+    }
+
+    /** 撤销邀请。已使用的不能撤销。 */
+    @DeleteMapping("/{id}")
+    public ApiResponse<InviteSummaryResponse> revoke(@PathVariable UUID id) {
+        AdminInvite invite = inviteService.revoke(id);
+        return ApiResponse.ok(InviteSummaryResponse.from(invite, OffsetDateTime.now()));
     }
 
     private static Role parseRole(String raw) {

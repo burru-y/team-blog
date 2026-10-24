@@ -11,9 +11,23 @@ import { Label } from "@/components/ui/label";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
 import { useSession } from "@/lib/session";
-import type { AdminFeedback, AdminProject, InviteCreated, UserResponse } from "@/lib/types";
+import type {
+  AdminFeedback,
+  AdminProject,
+  InviteCreated,
+  InviteSummary,
+  UserResponse,
+} from "@/lib/types";
 
 type Tab = "members" | "invites" | "content" | "feedback";
+
+/** 邀请状态的中文标签。与后端 AdminInvite.Status 一一对应。 */
+const STATUS_LABEL: Record<string, string> = {
+  ACTIVE: "有效",
+  USED: "已使用",
+  EXPIRED: "已过期",
+  REVOKED: "已撤销",
+};
 
 const TABS: { key: Tab; label: string }[] = [
   { key: "members", label: "成员" },
@@ -176,6 +190,31 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
   const [role, setRole] = useState<"MEMBER" | "ADMIN">("MEMBER");
   const [created, setCreated] = useState<InviteCreated | null>(null);
   const [busy, setBusy] = useState(false);
+  const [invites, setInvites] = useState<InviteSummary[]>([]);
+
+  const loadInvites = useCallback(async () => {
+    try {
+      setInvites(await api.listInvites(token));
+    } catch (err) {
+      onError(err instanceof ApiError ? messageFor(err.code) : "加载邀请列表失败");
+    }
+  }, [token, onError]);
+
+  useEffect(() => {
+    loadInvites();
+  }, [loadInvites]);
+
+  async function revoke(id: string) {
+    setBusy(true);
+    try {
+      await api.revokeInvite(id, token);
+      await loadInvites();
+    } catch (err) {
+      onError(err instanceof ApiError ? messageFor(err.code) : "撤销失败");
+    } finally {
+      setBusy(false);
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -183,6 +222,7 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
     try {
       setCreated(await api.createInvite({ email: email.trim() || null, role }, token));
       setEmail("");
+      await loadInvites();
     } catch (err) {
       onError(err instanceof ApiError ? messageFor(err.code) : "生成失败");
     } finally {
@@ -232,6 +272,40 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
             <p className="text-xs text-muted-foreground">角色：{created.role}</p>
           </div>
         ) : null}
+      </CardContent>
+
+      <CardContent className="space-y-3 border-t pt-4">
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-base">已签发的邀请</CardTitle>
+            <span className="text-xs text-muted-foreground">最近 100 张 · 链接只在生成时显示一次</span>
+          </div>
+
+          {invites.length === 0 ? (
+            <p className="text-sm text-muted-foreground">还没有签发过邀请。</p>
+          ) : (
+            <div className="divide-y rounded-lg border">
+              {invites.map((invite) => (
+                <div key={invite.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <Badge variant={invite.status === "ACTIVE" ? "default" : "secondary"}>
+                      {STATUS_LABEL[invite.status] ?? invite.status}
+                    </Badge>
+                    <span className="text-muted-foreground">{invite.email ?? "未指定邮箱"}</span>
+                    <Badge variant="outline">{invite.role === "ADMIN" ? "管理员" : "成员"}</Badge>
+                  </div>
+
+                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                    <span>创建 {new Date(invite.createdAt).toLocaleDateString("zh-CN")}</span>
+                    {invite.status === "ACTIVE" ? (
+                      <Button size="sm" variant="ghost" disabled={busy} onClick={() => revoke(invite.id)}>
+                        撤销
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
       </CardContent>
     </Card>
   );

@@ -118,7 +118,13 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /**
+         * 已签发的邀请列表
+         * @description 返回最近 100 张邀请及其状态，按创建时间倒序。
+         *
+         *     不含邀请链接本身：库里只存哈希，明文只在创建时返回一次。
+         */
+        get: operations["listInvites"];
         put?: never;
         /**
          * 管理员生成一次性邀请（仅 ADMIN）
@@ -129,6 +135,26 @@ export interface paths {
          */
         post: operations["createInvite"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/admin/invites/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * 撤销邀请
+         * @description 已使用的邀请不能撤销（账号已建立）。
+         */
+        delete: operations["revokeInvite"];
         options?: never;
         head?: never;
         patch?: never;
@@ -830,6 +856,23 @@ export interface components {
              */
             email?: string | null;
         };
+        InviteSummary: {
+            /** Format: uuid */
+            id?: string;
+            email?: string | null;
+            /** @enum {string} */
+            role?: "ADMIN" | "MEMBER";
+            /** @enum {string} */
+            status?: "ACTIVE" | "USED" | "EXPIRED" | "REVOKED";
+            /** Format: date-time */
+            createdAt?: string;
+            /** Format: date-time */
+            expiresAt?: string;
+            /** Format: date-time */
+            usedAt?: string | null;
+            /** Format: date-time */
+            revokedAt?: string | null;
+        };
         UpdateProfileRequest: {
             avatarUrl?: string | null;
             bio?: string | null;
@@ -1264,6 +1307,38 @@ export interface operations {
             };
         };
     };
+    listInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok?: boolean;
+                        data?: components["schemas"]["InviteSummary"][];
+                    };
+                };
+            };
+            /** @description 需要管理员 */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
     createInvite: {
         parameters: {
             query?: never;
@@ -1296,6 +1371,49 @@ export interface operations {
             401: components["responses"]["Unauthenticated"];
             /** @description 不是管理员 */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+        };
+    };
+    revokeInvite: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 已撤销 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ok?: boolean;
+                        data?: components["schemas"]["InviteSummary"];
+                    };
+                };
+            };
+            /** @description 邀请不存在 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
+            /** @description 已使用的邀请不能撤销 */
+            409: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -3,6 +3,7 @@ import type {
   AdminProject,
   CheckinResult,
   InviteCreated,
+  InviteSummary,
   LearningLogResponse,
   CommentBody,
   FeedbackBody,
@@ -230,6 +231,19 @@ export const api = {
     return request<null>("/api/v1/me/password", {
       method: "POST",
       body: { oldPassword, newPassword },
+      token,
+    });
+  },
+
+  /** 已签发的邀请列表（管理员）。 */
+  listInvites(token: string): Promise<InviteSummary[]> {
+    return request<InviteSummary[]>("/api/v1/admin/invites", { token });
+  },
+
+  /** 撤销邀请（管理员）。已使用的不能撤销。 */
+  revokeInvite(id: string, token: string): Promise<InviteSummary> {
+    return request<InviteSummary>(`/api/v1/admin/invites/${encodeURIComponent(id)}`, {
+      method: "DELETE",
       token,
     });
   },
