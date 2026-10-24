@@ -44,3 +44,6 @@ __pycache__/
 
 # TLS 证书（私钥绝不入库）
 teamblog/ops/nginx/certs/*.pem
+
+# 第三方 AI 工具的脚手架模板，与项目无关
+.spec-workflow/
