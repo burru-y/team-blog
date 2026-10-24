@@ -17,9 +17,9 @@ export default async function ProjectsPage() {
   const page = await serverApi.listProjects(undefined, 20);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight">团队成果</h1>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">团队成果</h1>
         <p className="text-sm text-muted-foreground">
           项目、证书与奖项。点进去可以看详细内容，作者本人与管理员可以下架。
         </p>
@@ -34,7 +34,7 @@ export default async function ProjectsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
           {page.items.map((project) => (
-            <Card key={project.id} className="transition-colors hover:border-foreground/20">
+            <Card key={project.id} className="card-lift hover:card-lift-hover hover:border-foreground/20">
               <CardHeader className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{TYPE_LABEL[project.type] ?? project.type}</Badge>

@@ -43,7 +43,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const checkinDays = heatmap ? Object.keys(heatmap.days).length : 0;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Avatar className="size-16">
@@ -54,7 +54,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
 
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <h1 className="text-2xl font-semibold tracking-tight">{profile.displayName}</h1>
+              <h1 className="text-3xl font-semibold tracking-tight">{profile.displayName}</h1>
               {profile.displayName !== profile.username ? (
                 <span className="text-sm text-muted-foreground">@{profile.username}</span>
               ) : null}
@@ -73,7 +73,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       </section>
 
       <section className="grid gap-4 sm:grid-cols-3">
-        <Card className="sm:col-span-2">
+        <Card className="card-lift sm:col-span-2">
           <CardHeader>
             <CardTitle className="text-base">简介</CardTitle>
           </CardHeader>
@@ -95,7 +95,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="card-lift">
           <CardHeader>
             <CardTitle className="text-base">数据</CardTitle>
           </CardHeader>
