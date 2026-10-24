@@ -71,6 +71,9 @@ export function SiteFooter() {
             ))}
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <Link href="/timeline" className="underline underline-offset-4 hover:text-foreground">
+              版本时间线
+            </Link>
             <a
               href="https://github.com/burru-y/team-blog"
               target="_blank"

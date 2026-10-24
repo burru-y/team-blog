@@ -41,6 +41,9 @@ export function SiteHeader() {
           <Link href="/projects" className="text-sm text-muted-foreground hover:text-foreground">
             成果
           </Link>
+          <Link href="/timeline" className="text-sm text-muted-foreground hover:text-foreground">
+            时间线
+          </Link>
           <Link href="/feedback" className="text-sm text-muted-foreground hover:text-foreground">
             留言
           </Link>
