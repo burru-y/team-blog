@@ -13,6 +13,7 @@ import {
 import { CheckinCard } from "@/components/checkin-card";
 import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
+import { STATUS_LABEL, VERSIONS } from "@/lib/timeline";
 
 /**
  * 强制动态渲染。
@@ -123,6 +124,35 @@ export default async function HomePage() {
             </Link>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-3 border-t pt-6">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-lg font-semibold">版本</h2>
+          <Link
+            href="/timeline"
+            className="text-sm text-muted-foreground underline underline-offset-4"
+          >
+            开发时间线
+          </Link>
+        </div>
+
+        <div className="space-y-2">
+          {VERSIONS.map((item) => (
+            <div
+              key={item.version}
+              className="flex flex-wrap items-baseline gap-2 rounded-lg border px-4 py-3"
+            >
+              <span className="font-mono text-sm">{item.version}</span>
+              <span className="font-medium">{item.name}</span>
+              <Badge variant={item.status === "done" ? "secondary" : "outline"}>
+                {STATUS_LABEL[item.status]}
+              </Badge>
+              <span className="text-xs text-muted-foreground">{item.date}</span>
+              <p className="w-full text-xs text-muted-foreground">{item.note}</p>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );
