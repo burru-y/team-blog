@@ -32,6 +32,32 @@ public interface ProjectRepository extends JpaRepository<Project, UUID> {
             """)
     List<Project> findFirstPage(@Param("status") ProjectStatus status, Pageable pageable);
 
+    /**
+     * 个人页用：按作者过滤。单独的查询而不是给上面两个加可选参数，
+     * 因为 `and (:ownerId is null or p.ownerId = :ownerId)` 这种写法会让
+     * PostgreSQL 无法用上索引（参数为空时走全表扫描）。
+     */
+    @Query("""
+            select p from Project p
+             where p.status = :status and p.ownerId = :ownerId
+             order by p.createdAt desc, p.id desc
+            """)
+    List<Project> findFirstPageByOwner(@Param("status") ProjectStatus status,
+                                      @Param("ownerId") UUID ownerId,
+                                      Pageable pageable);
+
+    @Query("""
+            select p from Project p
+             where p.status = :status and p.ownerId = :ownerId
+               and (p.createdAt < :createdAt or (p.createdAt = :createdAt and p.id < :id))
+             order by p.createdAt desc, p.id desc
+            """)
+    List<Project> findPageAfterByOwner(@Param("status") ProjectStatus status,
+                                       @Param("ownerId") UUID ownerId,
+                                       @Param("createdAt") OffsetDateTime createdAt,
+                                       @Param("id") UUID id,
+                                       Pageable pageable);
+
     @Query("""
             select p from Project p
              where p.status = :status

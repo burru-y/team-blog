@@ -4,9 +4,11 @@ import com.teamblog.auth.AuthPrincipal;
 import com.teamblog.common.ApiResponse;
 import com.teamblog.common.PageResponse;
 import com.teamblog.user.dto.ChangePasswordRequest;
+import com.teamblog.user.dto.UpdateProfileRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,6 +36,14 @@ public class UserController {
     @GetMapping("/me")
     public ApiResponse<UserResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {
         return ApiResponse.ok(userService.getMe(principal.id()));
+    }
+
+    /** 修改本人资料：只覆盖传入字段，未传的保持原值。 */
+    @PatchMapping("/me")
+    public ApiResponse<UserResponse> updateProfile(@AuthenticationPrincipal AuthPrincipal principal,
+                                                   @Valid @RequestBody UpdateProfileRequest request) {
+        User user = userService.updateProfile(principal.id(), request);
+        return ApiResponse.ok(UserResponse.from(user));
     }
 
     /** 修改自己的密码：必须验证旧密码，改完所有设备下线。 */

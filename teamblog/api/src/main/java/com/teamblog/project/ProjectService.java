@@ -85,10 +85,38 @@ public class ProjectService {
 
     @Transactional(readOnly = true)
     public PageResponse<ProjectCardResponse> list(String cursor, int limit) {
+        return list(cursor, limit, null);
+    }
+
+    /**
+     * 成果列表，可按作者过滤（个人页用）。
+     *
+     * <p>按用户名查而不是用户 id：URL 里传的是 `?author=member1`，
+     * 前端拿到的是用户名而不是 id，多一层转换没必要。
+     * 用户不存在时返回空页而不是 404——一个还没发过成果的成员，个人页也应该是空的。
+     */
+    @Transactional(readOnly = true)
+    public PageResponse<ProjectCardResponse> list(String cursor, int limit, String authorUsername) {
         int size = normalizeLimit(limit);
-        List<Project> rows = (cursor == null || cursor.isBlank())
-                ? projectRepository.findFirstPage(ProjectStatus.ACTIVE, PageRequest.of(0, size + 1))
-                : pageAfterCursor(cursor, size);
+
+        UUID ownerId = null;
+        if (authorUsername != null && !authorUsername.isBlank()) {
+            ownerId = userRepository.findByUsername(User.normalizeUsername(authorUsername))
+                    .filter(user -> !user.isDeleted())
+                    .map(User::getId)
+                    .orElse(null);
+            if (ownerId == null) {
+                return PageResponse.of(List.of(), null);
+            }
+        }
+
+        List<Project> rows = ownerId == null
+                ? (cursor == null || cursor.isBlank()
+                    ? projectRepository.findFirstPage(ProjectStatus.ACTIVE, PageRequest.of(0, size + 1))
+                    : pageAfterCursor(cursor, size))
+                : (cursor == null || cursor.isBlank()
+                    ? projectRepository.findFirstPageByOwner(ProjectStatus.ACTIVE, ownerId, PageRequest.of(0, size + 1))
+                    : pageAfterCursorByOwner(cursor, size, ownerId));
 
         boolean hasNext = rows.size() > size;
         List<Project> page = hasNext ? rows.subList(0, size) : rows;
@@ -117,6 +145,12 @@ public class ProjectService {
         CursorUtils.Cursor decoded = CursorUtils.decode(cursor);
         return projectRepository.findPageAfter(ProjectStatus.ACTIVE, decoded.createdAt(), decoded.id(),
                 PageRequest.of(0, size + 1));
+    }
+
+    private List<Project> pageAfterCursorByOwner(String cursor, int size, UUID ownerId) {
+        CursorUtils.Cursor decoded = CursorUtils.decode(cursor);
+        return projectRepository.findPageAfterByOwner(ProjectStatus.ACTIVE, ownerId,
+                decoded.createdAt(), decoded.id(), PageRequest.of(0, size + 1));
     }
 
     private Project requireActive(UUID projectId) {

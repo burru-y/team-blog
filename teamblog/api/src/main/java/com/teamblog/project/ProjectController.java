@@ -42,8 +42,9 @@ public class ProjectController {
     @GetMapping
     public ApiResponse<PageResponse<ProjectCardResponse>> list(
             @RequestParam(required = false) String cursor,
-            @RequestParam(defaultValue = "20") int limit) {
-        return ApiResponse.ok(projectService.list(cursor, limit));
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String author) {
+        return ApiResponse.ok(projectService.list(cursor, limit, author));
     }
 
     @GetMapping("/{id}")

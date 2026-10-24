@@ -176,6 +176,9 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/me", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.MEMBER, 200),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.ADMIN, 200),
+                new Case(HttpMethod.PATCH, "/api/v1/me", null, 401),
+                // 空 body → 400：证明通过了鉴权、进入了 Controller（不校验业务语义）
+                new Case(HttpMethod.PATCH, "/api/v1/me", Role.MEMBER, 400),
                 new Case(HttpMethod.POST, "/api/v1/me/password", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/me/password", Role.MEMBER, 400),
 

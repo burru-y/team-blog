@@ -116,6 +116,14 @@ export const api = {
   },
 
   /** 公开资料（公开）。 */
+  /** 修改本人资料：只传要改的字段，未传的保持原值。 */
+  updateProfile(
+    payload: { avatarUrl?: string; bio?: string; githubUrl?: string; emailPublic?: boolean },
+    token: string,
+  ): Promise<UserResponse> {
+    return request<UserResponse>("/api/v1/me", { method: "PATCH", body: payload, token });
+  },
+
   getUserProfile(username: string): Promise<UserResponse> {
     return request<UserResponse>(`/api/v1/users/${encodeURIComponent(username)}`);
   },

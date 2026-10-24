@@ -4,6 +4,7 @@ import com.teamblog.common.BusinessException;
 import com.teamblog.common.CursorUtils;
 import com.teamblog.common.ErrorCode;
 import com.teamblog.common.PasswordRules;
+import com.teamblog.user.dto.UpdateProfileRequest;
 import com.teamblog.common.PageResponse;
 import org.springframework.data.domain.PageRequest;
 import lombok.extern.slf4j.Slf4j;
@@ -87,6 +88,33 @@ public class UserService {
         return userRepository.findActiveByUsername(User.normalizeUsername(username))
                 .map(UserResponse::fromPublic)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
+    }
+
+    /**
+     * 修改本人资料。
+     *
+     * <p>只覆盖传入的字段，未传的保持原值。这样前端可以做"只改简介"这类局部提交，
+     * 不会因为漏传某个字段把头像清空。
+     */
+    @Transactional
+    public User updateProfile(UUID userId, UpdateProfileRequest request) {
+        User user = userRepository.findById(userId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHENTICATED));
+
+        String avatarUrl = request.avatarUrl() != null ? blankToNull(request.avatarUrl()) : user.getAvatarUrl();
+        String bio = request.bio() != null ? blankToNull(request.bio()) : user.getBio();
+        String githubUrl = request.githubUrl() != null ? blankToNull(request.githubUrl()) : user.getGithubUrl();
+        boolean emailPublic = request.emailPublic() != null ? request.emailPublic() : user.isEmailPublic();
+
+        user.updateProfile(avatarUrl, bio, githubUrl, emailPublic);
+        return user;
+    }
+
+    /** 空串按"清空"处理，避免前端提交空字符串把字段存成 "" 而不是 NULL。 */
+    private static String blankToNull(String raw) {
+        String trimmed = raw == null ? null : raw.trim();
+        return trimmed == null || trimmed.isEmpty() ? null : trimmed;
     }
 
     /**

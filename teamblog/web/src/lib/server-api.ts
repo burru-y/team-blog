@@ -37,8 +37,11 @@ export const serverApi = {
     );
   },
 
-  listProjects(cursor?: string, limit = 20): Promise<ProjectPage> {
-    return request<ProjectPage>(`/api/v1/projects?${pageQuery(cursor, limit)}`, { base: ORIGIN });
+  /** 个人页用：按作者筛选（后端 `?author=`），不传则返回全站成果。 */
+  listProjects(cursor?: string, limit = 20, author?: string): Promise<ProjectPage> {
+    const base = pageQuery(cursor, limit);
+    const suffix = author ? `&author=${encodeURIComponent(author)}` : "";
+    return request<ProjectPage>(`/api/v1/projects?${base}${suffix}`, { base: ORIGIN });
   },
 
   getProject(id: string): Promise<ProjectResponse> {
