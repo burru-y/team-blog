@@ -192,6 +192,11 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
   const [busy, setBusy] = useState(false);
   const [invites, setInvites] = useState<InviteSummary[]>([]);
 
+  // 本机地址拼出来的邀请链接，发给同学是打不开的，所以要显式提醒
+  const isLocalOrigin =
+    typeof window !== "undefined" &&
+    /^(https?:\/\/)?(localhost|127\.0\.0\.1|0\.0\.0\.0)(:|\/|$)/i.test(window.location.origin);
+
   const loadInvites = useCallback(async () => {
     try {
       setInvites(await api.listInvites(token));
@@ -272,6 +277,14 @@ function InvitesTab({ token, onError }: { token: string; onError: (msg: string |
               {typeof window === "undefined" ? "" : window.location.origin}/join/{created.token}
             </code>
             <p className="text-xs text-muted-foreground">角色：{created.role}</p>
+
+            {/* 链接用当前浏览器地址拼出来：在 localhost 上生成时，发给别人是打不开的 */}
+            {isLocalOrigin ? (
+              <p className="text-xs text-amber-600 dark:text-amber-400">
+                注意：你现在用的是本机地址，这个链接别人打不开。
+                请改用隧道或域名地址访问后台，再生成一次。
+              </p>
+            ) : null}
           </div>
         ) : null}
       </CardContent>
