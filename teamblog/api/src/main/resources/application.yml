@@ -52,6 +52,13 @@ auth:
 invite:
   ttl: 7d                         # 邀请链接有效期；过期后兑换返回 410
 
+# 首启管理员：只在"库里一个用户都没有"时生效（详情见 AdminBootstrap 注释）。
+# 故意不给默认密码——默认密码等于公开后门。
+admin:
+  bootstrap:
+    username: ${ADMIN_BOOTSTRAP_USERNAME:admin}
+    password: ${ADMIN_BOOTSTRAP_PASSWORD:}
+
 # 摘要服务（FastAPI）。环境变量名和 AI 服务自己的 AI_BASE_URL 区分开，
 # 避免"配错了却看不出来"
 ai:

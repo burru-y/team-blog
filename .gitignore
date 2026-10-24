@@ -42,3 +42,5 @@ __pycache__/
 .pytest_cache/
 .venv/
 
+# TLS 证书（私钥绝不入库）
+teamblog/ops/nginx/certs/*.pem

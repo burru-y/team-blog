@@ -201,6 +201,24 @@ export const api = {
     });
   },
 
+  /** 管理员重置某人密码：对方所有会话立刻失效。 */
+  resetUserPassword(id: string, newPassword: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/admin/users/${encodeURIComponent(id)}/password`, {
+      method: "POST",
+      body: { newPassword },
+      token,
+    });
+  },
+
+  /** 修改自己的密码：必须给旧密码。 */
+  changeMyPassword(oldPassword: string, newPassword: string, token: string): Promise<null> {
+    return request<null>("/api/v1/me/password", {
+      method: "POST",
+      body: { oldPassword, newPassword },
+      token,
+    });
+  },
+
   createInvite(payload: { email?: string | null; role: "ADMIN" | "MEMBER" }, token: string): Promise<InviteCreated> {
     return request<InviteCreated>("/api/v1/admin/invites", { method: "POST", body: payload, token });
   },

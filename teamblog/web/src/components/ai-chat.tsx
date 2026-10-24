@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { streamProjectChat } from "@/lib/ai";
+import { useSession } from "@/lib/session";
 
 type Turn = { question: string; answer: string; error?: string };
 
@@ -18,6 +19,8 @@ type Turn = { question: string; answer: string; error?: string };
  * 3. **降级文案**：429 / 503 / 502 / 断网 各自不同——用户该做的动作不一样。
  */
 export function AiChat({ projectId }: { projectId: string }) {
+  // 没有 token 也能用（访客档）；登录后自动带 token 升到成员档
+  const { token } = useSession();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -55,6 +58,8 @@ export function AiChat({ projectId }: { projectId: string }) {
 
     await streamProjectChat(projectId, text, {
       signal: controller.signal,
+      // 带上 token：访客用受限档，登录成员自动升到成员档
+      token,
       onDelta: (chunk) => {
         setTurns((prev) => {
           const next = [...prev];

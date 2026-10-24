@@ -1,0 +1,25 @@
+# HTTPS 覆盖文件
+#
+#   docker compose -f compose.yaml -f compose.tls.yaml up -d
+#
+# 覆盖了什么：
+#   - nginx 换成 https.conf（80 只跳转，443 提供 TLS）
+#   - 端口：HTTP_PORT -> 80，HTTPS_PORT -> 443
+#   - 挂载证书目录
+#
+# 开关 Cookie 的 Secure 属性必须同时做：把 .env 里 COOKIE_SECURE 改成 true，
+# 否则浏览器在 https 下仍会收到不带 Secure 的 Cookie（能用，但不安全）。
+
+services:
+  nginx:
+    ports: !override
+      - "${HTTP_PORT:-8080}:80"
+      - "${HTTPS_PORT:-8443}:443"
+    volumes:
+      - ../nginx/https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/certs:/etc/nginx/certs:ro
+      - uploads:/var/www/uploads:ro
+
+volumes:
+  pgdata:
+  uploads:

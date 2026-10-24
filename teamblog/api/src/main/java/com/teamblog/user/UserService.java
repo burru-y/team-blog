@@ -3,8 +3,11 @@ package com.teamblog.user;
 import com.teamblog.common.BusinessException;
 import com.teamblog.common.CursorUtils;
 import com.teamblog.common.ErrorCode;
+import com.teamblog.common.PasswordRules;
 import com.teamblog.common.PageResponse;
 import org.springframework.data.domain.PageRequest;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +20,7 @@ import java.util.UUID;
  * <p>为什么 Controller 不直接调 Repository：ArchUnit 规则会拦（J-02/§13），更实际的理由
  * 是"软删账号不算存在"这类判断必须集中，散在 Controller 里早晚漏一处。
  */
+@Slf4j
 @Service
 public class UserService {
 
@@ -24,9 +28,11 @@ public class UserService {
     private static final int MAX_PAGE_SIZE = 100;
 
     private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UserService(UserRepository userRepository) {
+    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     /**
@@ -81,6 +87,45 @@ public class UserService {
         return userRepository.findActiveByUsername(User.normalizeUsername(username))
                 .map(UserResponse::fromPublic)
                 .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
+    }
+
+    /**
+     * 管理员重置他人密码。
+     *
+     * <p>一期没有邮件服务，不能做"忘记密码"，所以唯一的恢复路径就是管理员重置。
+     * 改完 tokenVersion 会 +1，对方已登录的设备立刻失效——这既是安全要求，
+     * 也是"确实重置了"的证明。
+     */
+    @Transactional
+    public void resetPassword(UUID actorId, UUID targetId, String newPassword) {
+        User user = userRepository.findById(targetId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
+
+        PasswordRules.validate(newPassword, user.getUsername());
+        user.changePassword(passwordEncoder.encode(newPassword));
+
+        log.warn("管理员 {} 重置了用户 {} 的密码（旧会话已失效）", actorId, user.getUsername());
+    }
+
+    /**
+     * 修改自己的密码。
+     *
+     * <p>必须验证旧密码：否则一个被盗用的 access token 就能改掉密码、彻底接管账号。
+     */
+    @Transactional
+    public void changeOwnPassword(UUID userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.UNAUTHENTICATED));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            // 与登录失败同样的文案：不额外透露"密码是否正确"
+            throw new BusinessException(ErrorCode.UNAUTHENTICATED, "用户名或密码错误");
+        }
+
+        PasswordRules.validate(newPassword, user.getUsername());
+        user.changePassword(passwordEncoder.encode(newPassword));
     }
 
     /** A-08：默认 20，上限 100。超出范围的请求不该报错，静默收敛到合法值。 */

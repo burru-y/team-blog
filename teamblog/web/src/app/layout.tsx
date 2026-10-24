@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { SessionProvider } from "@/lib/session";
 import { Toaster } from "@/components/ui/sonner";
@@ -18,7 +19,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "TeamBlog · 团队技术博客",
-  description: "团队的技术成果、学习记录与打卡热度",
+  description: "团队的技术成果、学习记录与打卡热度（内测中）",
 };
 
 export default function RootLayout({
@@ -33,6 +34,7 @@ export default function RootLayout({
         <SessionProvider>
           <SiteHeader />
           <main className="mx-auto w-full max-w-5xl px-4 py-10">{children}</main>
+          <SiteFooter />
           <Toaster position="top-center" />
         </SessionProvider>
       </body>

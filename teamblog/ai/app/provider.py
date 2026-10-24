@@ -21,14 +21,18 @@ class ModelError(RuntimeError):
     """上游模型不可用。路由层会把它翻译成 502 / SSE error 事件。"""
 
 
-async def stream_answer(settings: Settings, prompt: str) -> AsyncIterator[str]:
-    """逐块产出文本。调用方负责包成 SSE 事件。"""
+async def stream_answer(settings: Settings, prompt: str, model: str | None = None, max_tokens: int = 600) -> AsyncIterator[str]:
+    """逐块产出文本。调用方负责包成 SSE 事件。
+
+    model 由调用方按身份决定（匿名用便宜模型、成员用强模型），
+    provider 层不关心"为什么用这个模型"。
+    """
     if settings.provider == "mock":
         async for chunk in _mock_stream(prompt):
             yield chunk
         return
 
-    async for chunk in _openai_compatible_stream(settings, prompt):
+    async for chunk in _openai_compatible_stream(settings, prompt, model or settings.anon_model, max_tokens):
         yield chunk
 
 
@@ -39,7 +43,8 @@ async def complete(settings: Settings, prompt: str) -> str:
         return _mock_summary(prompt)
 
     payload = {
-        "model": settings.model,
+        # 摘要只由 Spring 在成员操作时触发，用成员档模型
+        "model": settings.member_model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.2,
         "max_tokens": 400,
@@ -59,12 +64,14 @@ async def complete(settings: Settings, prompt: str) -> str:
         raise ModelError(str(exc)) from exc
 
 
-async def _openai_compatible_stream(settings: Settings, prompt: str) -> AsyncIterator[str]:
+async def _openai_compatible_stream(settings: Settings, prompt: str, model: str, max_tokens: int) -> AsyncIterator[str]:
     payload = {
-        "model": settings.model,
+        "model": model,
         "messages": [{"role": "user", "content": prompt}],
         "temperature": 0.3,
-        "max_tokens": 600,
+        "max_tokens": max_tokens,
+        # 官方参数：{"thinking": {"type": "enabled|disabled"}}
+        "thinking": {"type": settings.thinking},
         "stream": True,
     }
     try:

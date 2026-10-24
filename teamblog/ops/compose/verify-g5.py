@@ -2,7 +2,12 @@ import json
 import urllib.error
 import urllib.request
 
-BASE = "http://localhost:8088"
+# 账号密码从环境变量读：管理员改过密码后，脚本里写死就再也跑不通了。
+#   $env:G5_USER="admin1"; $env:G5_PASSWORD="你的密码"; python verify-g5.py
+import os
+BASE = os.environ.get("G5_BASE", "http://localhost:8088")
+USERNAME = os.environ.get("G5_USER", "admin1")
+PASSWORD = os.environ.get("G5_PASSWORD", "")
 results = []
 
 
@@ -21,7 +26,13 @@ def req(method, path, payload=None, token=None):
             except Exception:
                 return resp.status, body[:80]
     except urllib.error.HTTPError as e:
-        return e.code, e.read()[:200]
+        # 错误响应也解析成 dict：否则调用方拿到的是 bytes，
+        # 想判断 error.code（比如 409 ALREADY_CHECKED_IN）就只能做字符串匹配
+        raw = e.read()
+        try:
+            return e.code, json.loads(raw or b"null")
+        except Exception:
+            return e.code, raw[:200]
 
 
 def check(name, ok, detail=""):
@@ -41,7 +52,7 @@ status, body = req("GET", "/")
 check("首页 200", status == 200, f"len={len(body) if isinstance(body, bytes) else 'n/a'}")
 
 print("\n[3] 登录（nginx -> api）")
-status, login = req("POST", "/api/v1/auth/login", {"username": "admin1", "password": "ChangeMe123!"})
+status, login = req("POST", "/api/v1/auth/login", {"username": USERNAME, "password": PASSWORD})
 check("登录 200", status == 200)
 token = login["data"]["accessToken"] if status == 200 else None
 check("拿到 accessToken", bool(token))
@@ -54,7 +65,15 @@ check("成果流 200", status == 200)
 
 print("\n[5] 写入（打卡 + 发内容）")
 status, checkin = req("POST", "/api/v1/checkins", {}, token)
-check("打卡 201", status == 201, str(checkin)[:80] if status != 201 else f"streak={checkin['data']['streak']}")
+# 409 ALREADY_CHECKED_IN 是**正确的幂等行为**：同一天第二次打卡本来就该被拒。
+# 验收脚本要区分"产品坏了"和"今天已经打过卡了"。
+if status == 201:
+    check("打卡 201", True, f"streak={checkin['data']['streak']}")
+elif status == 409 and isinstance(checkin, dict) and checkin.get("error", {}).get("code") == "ALREADY_CHECKED_IN":
+    check("打卡幂等（今天已打过，返回 409 ALREADY_CHECKED_IN）", True,
+          str(checkin.get("error", {}).get("message"))[:40])
+else:
+    check("打卡", False, str(checkin)[:80])
 status, log = req("POST", "/api/v1/learning-logs",
                   {"type": "NOTE", "title": "G5 验收：容器内发布", "contentMd": "# 在容器里写的第一篇"},
                   token)

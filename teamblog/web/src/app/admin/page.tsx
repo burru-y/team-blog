@@ -95,6 +95,22 @@ function MembersTab({ token, onError }: { token: string; onError: (msg: string |
     void load();
   }, [load]);
 
+  async function resetPassword(target: UserResponse) {
+    const next = window.prompt(`为 ${target.username} 设置新密码（至少 8 位）`);
+    if (!next) {
+      return;
+    }
+    setBusyId(target.id);
+    try {
+      await api.resetUserPassword(target.id, next, token);
+      window.alert(`已重置。${target.username} 的所有登录已失效，请用新密码重新登录。`);
+    } catch (err) {
+      onError(err instanceof ApiError ? messageFor(err.code) : "重置失败");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function toggleRole(target: UserResponse) {
     const next = target.role === "ADMIN" ? "MEMBER" : "ADMIN";
     if (!window.confirm(`把 ${target.username} 改成${next === "ADMIN" ? "管理员" : "成员"}？对方的登录会立刻失效。`)) {
@@ -130,14 +146,24 @@ function MembersTab({ token, onError }: { token: string; onError: (msg: string |
                 {item.totalPoints} 分 · Lv{item.level}
               </span>
             </div>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={busyId === item.id}
-              onClick={() => toggleRole(item)}
-            >
-              {item.role === "ADMIN" ? "降为成员" : "升为管理员"}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busyId === item.id}
+                onClick={() => resetPassword(item)}
+              >
+                重置密码
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busyId === item.id}
+                onClick={() => toggleRole(item)}
+              >
+                {item.role === "ADMIN" ? "降为成员" : "升为管理员"}
+              </Button>
+            </div>
           </div>
         ))}
       </CardContent>

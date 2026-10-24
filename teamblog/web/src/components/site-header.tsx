@@ -29,6 +29,9 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 w-full max-w-5xl items-center justify-between px-4">
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <span className="text-lg">TeamBlog</span>
+          <Badge className="border-amber-500/40 bg-amber-500/15 text-amber-700 dark:text-amber-400">
+            内测
+          </Badge>
           <Badge variant="secondary" className="hidden sm:inline-flex">
             团队技术博客
           </Badge>

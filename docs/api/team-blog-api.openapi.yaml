@@ -1121,6 +1121,92 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiError'
 
+  /api/v1/admin/users/{id}/password:
+    post:
+      tags: [admin]
+      operationId: resetUserPassword
+      summary: 重置某人的密码（管理员）
+      description: |
+        一期没有邮件服务，"忘记密码"的唯一恢复路径就是管理员重置。
+
+        改完 `tokenVersion` +1，对方**所有已登录设备立刻失效**——
+        既是安全要求，也是"确实重置了"的证明。
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [newPassword]
+              properties:
+                newPassword:
+                  type: string
+                  minLength: 8
+                  description: 至少 8 位；BCrypt 只取前 72 字节
+      responses:
+        '200':
+          description: 已重置
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '403':
+          description: 需要管理员
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+        '404':
+          description: 用户不存在
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+
+  /api/v1/me/password:
+    post:
+      tags: [user]
+      operationId: changeMyPassword
+      summary: 修改自己的密码（需登录）
+      description: 必须提供旧密码——否则一个被盗用的 access token 就能改密码、彻底接管账号。
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [oldPassword, newPassword]
+              properties:
+                oldPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  minLength: 8
+      responses:
+        '200':
+          description: 已修改（当前会话也会失效，需要重新登录）
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiVoid'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+        '401':
+          $ref: '#/components/responses/Unauthenticated'
+
 components:
   securitySchemes:
     bearerAuth:

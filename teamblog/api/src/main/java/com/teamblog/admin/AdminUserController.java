@@ -9,6 +9,8 @@ import com.teamblog.user.Role;
 import com.teamblog.user.User;
 import com.teamblog.user.UserRepository;
 import com.teamblog.user.UserResponse;
+import com.teamblog.user.UserService;
+import com.teamblog.user.dto.ResetPasswordRequest;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import org.springframework.data.domain.PageRequest;
@@ -39,9 +41,11 @@ import java.util.UUID;
 public class AdminUserController {
 
     private final UserRepository userRepository;
+    private final UserService userService;
 
-    public AdminUserController(UserRepository userRepository) {
+    public AdminUserController(UserRepository userRepository, UserService userService) {
         this.userRepository = userRepository;
+        this.userService = userService;
     }
 
     @GetMapping
@@ -70,6 +74,15 @@ public class AdminUserController {
 
         user.changeRole(parseRole(request.role()));   // 内部会 bump tokenVersion
         return ApiResponse.ok(UserResponse.from(user));
+    }
+
+    /** 重置密码：改完旧会话立刻失效（tokenVersion +1）。 */
+    @PostMapping("/{id}/password")
+    public ApiResponse<Void> resetPassword(@AuthenticationPrincipal AuthPrincipal principal,
+                                           @PathVariable UUID id,
+                                           @Valid @RequestBody ResetPasswordRequest request) {
+        userService.resetPassword(principal.id(), id, request.newPassword());
+        return ApiResponse.ok(null);
     }
 
     private static Role parseRole(String raw) {

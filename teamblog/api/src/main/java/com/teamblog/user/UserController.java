@@ -3,8 +3,12 @@ package com.teamblog.user;
 import com.teamblog.auth.AuthPrincipal;
 import com.teamblog.common.ApiResponse;
 import com.teamblog.common.PageResponse;
+import com.teamblog.user.dto.ChangePasswordRequest;
+import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,6 +34,14 @@ public class UserController {
     @GetMapping("/me")
     public ApiResponse<UserResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {
         return ApiResponse.ok(userService.getMe(principal.id()));
+    }
+
+    /** 修改自己的密码：必须验证旧密码，改完所有设备下线。 */
+    @PostMapping("/me/password")
+    public ApiResponse<Void> changePassword(@AuthenticationPrincipal AuthPrincipal principal,
+                                            @Valid @RequestBody ChangePasswordRequest request) {
+        userService.changeOwnPassword(principal.id(), request.oldPassword(), request.newPassword());
+        return ApiResponse.ok(null);
     }
 
     /** 成员列表：公开，访客也能看到团队有哪些人（A-08 的游标分页）。 */

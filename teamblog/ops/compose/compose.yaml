@@ -44,6 +44,9 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       UPLOAD_DIR: /app/uploads
       # 摘要服务：容器网络内直连 ai，外网访问不到（Nginx 对 /ai/v1/summarize 返回 403）
+      # 首启引导：只在空库时生效；不设则不会创建任何账号
+      ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME:-admin}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
       SUMMARIZER_URL: http://ai:8000
       INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:-dev-internal-secret}
       TZ: Asia/Shanghai
@@ -74,6 +77,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # 所有 AI_* 变量都从 .env 透传：分档参数会越来越多，
+    # 逐个列在 environment 里必漏（这次就漏了 6 个）
+    env_file:
+      - .env
     environment:
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       AI_API_KEY: ${AI_API_KEY:-}
@@ -82,11 +89,33 @@ services:
       # asyncpg 要的是标准 DSN，不带 jdbc: 前缀
       AI_DATABASE_URL: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-blog}
       AI_INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:-dev-internal-secret}
+      # 与 Spring 共享：只用来验签、区分匿名/成员，不做用户认证
+      AI_JWT_SECRET: ${JWT_SECRET}
       AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-20}
       AI_ENABLED: ${AI_ENABLED:-true}
       TZ: Asia/Shanghai
     expose:
       - "8000"
+
+  # 每日备份：跟着 compose 走，换机器不用重新配计划任务
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-blog}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      PGDATABASE: ${POSTGRES_DB:-blog}
+      BACKUP_AT: ${BACKUP_AT:-03:10}
+      RETENTION_DAYS: ${RETENTION_DAYS:-14}
+      TZ: Asia/Shanghai
+    volumes:
+      - backups:/backup
+      - ../backup:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/schedule.sh"]
 
   nginx:
     image: nginx:1.27-alpine
@@ -108,3 +137,4 @@ services:
 volumes:
   pgdata:
   uploads:
+  backups:

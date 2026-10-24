@@ -128,6 +128,10 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/admin/users", Role.MEMBER, 403),
                 new Case(HttpMethod.GET, "/api/v1/admin/users", Role.ADMIN, 200),
                 new Case(HttpMethod.PATCH, "/api/v1/admin/users/{id}/role", null, 401),
+                // 空 body → 400 说明请求到了 Controller 而不是被安全链拦
+                new Case(HttpMethod.POST, "/api/v1/admin/users/{id}/password", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/admin/users/{id}/password", Role.MEMBER, 403),
+                new Case(HttpMethod.POST, "/api/v1/admin/users/{id}/password", Role.ADMIN, 400),
                 new Case(HttpMethod.GET, "/api/v1/admin/projects", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/admin/projects", Role.MEMBER, 403),
                 new Case(HttpMethod.GET, "/api/v1/admin/projects", Role.ADMIN, 200),
@@ -172,6 +176,8 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/me", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.MEMBER, 200),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.ADMIN, 200),
+                new Case(HttpMethod.POST, "/api/v1/me/password", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/me/password", Role.MEMBER, 400),
 
                 // 管理员专属：手动触发积分对账
                 new Case(HttpMethod.POST, "/api/v1/admin/points/reconcile", null, 401),

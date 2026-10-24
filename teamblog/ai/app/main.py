@@ -21,7 +21,7 @@ from fastapi import FastAPI, Header, HTTPException, Request
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import AliasChoices, BaseModel, Field
 
-from . import prompts
+from . import auth, prompts
 from .config import Settings, get_settings
 from .db import ProjectRepository
 from .limits import DailyQuota
@@ -34,7 +34,7 @@ logger = logging.getLogger("teamblog.ai")
 
 settings: Settings = get_settings()
 repo = ProjectRepository(settings)
-quota = DailyQuota(settings.daily_limit)
+quota = DailyQuota()
 
 
 @asynccontextmanager
@@ -91,8 +91,17 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
     if project is None:
         raise HTTPException(status_code=404, detail="项目不存在或未公开")
 
-    if not quota.try_consume(_client_key(request)):
+    identity = auth.resolve_identity(
+        request.headers.get("authorization"), _client_key(request), settings
+    )
+
+    if not quota.try_consume(identity.quota_key, identity.daily_limit):
         raise HTTPException(status_code=429, detail="今天的提问次数已用完")
+
+    # 资料几乎为空时不调模型：模型只能反复说"资料里没写"，
+    # 既烧 token 又显得蠢。直接给一句有用的话。
+    if prompts.content_is_sparse(project, settings.min_usable_content_chars):
+        return _plain_stream(prompts.SPARSE_CONTENT_REPLY, quota.remaining(identity.quota_key, identity.daily_limit))
 
     prompt = prompts.project_chat_prompt(
         title=project["title"],
@@ -100,7 +109,11 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
         description=project["description"],
         content_md=project["content_md"],
         question=question,
+        max_chars=identity.max_answer_chars,
+        # 成员档不加限制（通用知识/代码/建议都能问），访客档仍限制在项目资料内
+        member=identity.logged_in,
     )
+    logger.info("问答 tier=%s model=%s q=%r", identity.tier.value, identity.model, question[:30])
 
     async def event_stream() -> AsyncIterator[bytes]:
         # X-Accel-Buffering 由路由统一加；这里是内容
@@ -108,8 +121,9 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
             return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n".encode()
 
         stopped = False
+        produced = 0
         try:
-            async for chunk in _with_heartbeat(stream_answer(settings, prompt), request):
+            async for chunk in _with_heartbeat(stream_answer(settings, prompt, identity.model, identity.max_tokens), request):
                 if await request.is_disconnected():
                     stopped = True
                     logger.info("客户端断开，停止生成")
@@ -118,9 +132,16 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
                     # 15 秒没吐字：发一个 SSE 注释行保活，前端会忽略它
                     yield b": ping\n\n"
                     continue
+                produced += len(chunk)
                 yield sse("delta", {"text": chunk})
+            if not stopped and produced == 0:
+                # 一个字的正文都没产生：思考模式有时会把 token 预算全花在推理上。
+                # 静默返回空会让前端出现一个空气泡，比报错更让人困惑。
+                logger.warning("模型没有产出任何正文 tier=%s model=%s", identity.tier.value, identity.model)
+                yield sse("error", {"code": "EMPTY_ANSWER", "message": "这次没答上来，请再问一次"})
+                return
             if not stopped:
-                yield sse("done", {"remaining": quota.remaining(_client_key(request))})
+                yield sse("done", {"remaining": quota.remaining(identity.quota_key, identity.daily_limit), "tier": identity.tier.value})
         except ModelError as exc:
             # 客户端先断开时，上游流会被取消并表现为 ModelError。
             # 必须区分这两种情况：一个是正常关闭，一个是真故障——
@@ -143,6 +164,19 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
             "X-Accel-Buffering": "no",   # 关键：告诉 Nginx 不要缓冲
             "Connection": "keep-alive",
         },
+    )
+
+
+def _plain_stream(text: str, remaining: int) -> StreamingResponse:
+    """不调模型、直接回一段固定文本（仍是标准 SSE 事件，前端不用特殊处理）。"""
+    async def gen() -> AsyncIterator[bytes]:
+        yield f"event: delta\ndata: {{\"text\": {json.dumps(text, ensure_ascii=False)}}}\n\n".encode()
+        yield f"event: done\ndata: {{\"remaining\": {remaining}}}\n\n".encode()
+
+    return StreamingResponse(
+        gen(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache, no-store", "X-Accel-Buffering": "no"},
     )
 
 

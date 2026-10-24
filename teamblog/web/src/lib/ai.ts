@@ -11,6 +11,8 @@ import { messageFor } from "./messages";
 
 export type StreamHandlers = {
   signal: AbortSignal;
+  /** 登录用户的 access token：带上它 AI 服务才会给"成员档"（更强模型 + 更高额度）。 */
+  token?: string | null;
   onDelta: (text: string) => void;
   onDone: () => void;
   onError: (message: string) => void;
@@ -25,7 +27,10 @@ export async function streamProjectChat(
   try {
     response = await fetch("/ai/v1/project-chat", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: {
+        "Content-Type": "application/json",
+        ...(handlers.token ? { Authorization: `Bearer ${handlers.token}` } : {}),
+      },
       body: JSON.stringify({ projectId, question }),
       signal: handlers.signal,
     });

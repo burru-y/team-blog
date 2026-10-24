@@ -14,19 +14,21 @@ def client(monkeypatch):
     # 每个测试用新的 settings 与 quota，避免互相污染
     monkeypatch.setenv("AI_PROVIDER", "mock")
     monkeypatch.setenv("AI_ENABLED", "true")
-    monkeypatch.setenv("AI_DAILY_LIMIT", "2")
+    monkeypatch.setenv("AI_ANON_DAILY_LIMIT", "2")
     monkeypatch.setenv("AI_DATABASE_URL", "postgresql://unused:unused@127.0.0.1:1/unused")
     get_settings.cache_clear()
     main.settings = get_settings()
-    main.quota = main.DailyQuota(main.settings.daily_limit)
+    main.quota = main.DailyQuota()
 
     async def fake_project(project_id: str):
+        # 内容要给够：少于 min_usable_content_chars 会走"空资料守卫"，
+        # 那样就测不到模型流式这条路径了
         return {
             "id": project_id,
             "type": "PROJECT",
             "title": "测试项目",
-            "description": "用于测试",
-            "content_md": "# 正文",
+            "description": "用于验证流式输出与事件格式的测试项目",
+            "content_md": "# 正文\n\n这个项目用了 Spring Boot 与 PostgreSQL，部署在 Nginx 后面。",
             "github_url": None,
         }
 

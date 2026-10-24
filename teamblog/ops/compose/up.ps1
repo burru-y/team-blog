@@ -32,7 +32,7 @@ function Wait-Engine {
     return $false
 }
 
-Write-Host "[up] 1/4 检查 Docker 引擎"
+Write-Host "[up] 1/5 检查 Docker 引擎"
 if (-not (Test-Path $dockerExe)) {
     throw "找不到 docker.exe，请先安装 Docker Desktop"
 }
@@ -48,7 +48,7 @@ if (-not (Wait-Engine)) {
 }
 Write-Host "[up]      引擎就绪"
 
-Write-Host "[up] 2/4 检查 .env"
+Write-Host "[up] 2/5 检查 .env"
 if (-not (Test-Path $envFile)) {
     $bytes = New-Object byte[] 36
     [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
@@ -61,8 +61,12 @@ POSTGRES_DB=blog
 POSTGRES_USER=blog
 POSTGRES_PASSWORD=$pw
 JWT_SECRET=$jwt
-COOKIE_SECURE=false
+COOKIE_SECURE=true
 HTTP_PORT=8088
+HTTPS_PORT=8443
+
+# 让所有 docker compose 命令自动带上 TLS 覆盖文件
+COMPOSE_FILE=compose.yaml;compose.tls.yaml
 "@
     [IO.File]::WriteAllText($envFile, $content, (New-Object Text.UTF8Encoding $false))
     Write-Host "[up]      已生成 compose/.env（随机密码与密钥）"
@@ -70,7 +74,23 @@ HTTP_PORT=8088
     Write-Host "[up]      compose/.env 已存在，沿用"
 }
 
-Write-Host "[up] 3/4 构建并启动（首次会构建镜像，约 3-8 分钟）"
+Write-Host "[up] 3/5 检查 TLS 证书"
+$certDir = Join-Path (Split-Path $composeDir -Parent) "nginx\certs"
+$certFile = Join-Path $certDir "fullchain.pem"
+$keyFile = Join-Path $certDir "privkey.pem"
+if (-not (Test-Path $certFile) -or -not (Test-Path $keyFile)) {
+    Write-Host "[up]      证书不存在，生成自签证书（1 年有效期）"
+    New-Item -ItemType Directory -Force -Path $certDir | Out-Null
+    & $dockerExe run --rm -v "${certDir}:/certs" alpine/openssl req -x509 -nodes -newkey rsa:2048 -days 365 `
+        -keyout /certs/privkey.pem -out /certs/fullchain.pem `
+        -subj "/C=CN/O=TeamBlog/CN=localhost" `
+        -addext "subjectAltName=DNS:localhost,IP:127.0.0.1" | Out-Null
+    if (-not (Test-Path $certFile)) { throw "证书生成失败" }
+} else {
+    Write-Host "[up]      证书已存在"
+}
+
+Write-Host "[up] 4/5 构建并启动（首次会构建镜像，约 3-8 分钟）"
 Push-Location $composeDir
 try {
     & $dockerExe compose up -d --build
@@ -79,25 +99,29 @@ try {
     Pop-Location
 }
 
-Write-Host "[up] 4/4 等待健康检查"
+Write-Host "[up] 5/5 等待健康检查"
 $port = ((Get-Content $envFile | Where-Object { $_ -match '^HTTP_PORT=' }) -split '=')[1]
 if (-not $port) { $port = "8088" }
 
+$httpsPort = ((Get-Content $envFile | Where-Object { $_ -match '^HTTPS_PORT=' }) -split '=')[1]
+if (-not $httpsPort) { $httpsPort = "8443" }
+
 for ($i = 0; $i -lt 60; $i++) {
-    try {
-        $resp = Invoke-WebRequest "http://127.0.0.1:$port/api/v1/health" -UseBasicParsing -TimeoutSec 3
-        if ($resp.StatusCode -eq 200) {
-            Write-Host "[up]      健康检查通过：$($resp.Content)"
+    # 用 curl 而不是 Invoke-WebRequest：自签证书会让 .NET 直接抛异常，
+    # 而 -k 正好跳过校验（本地开发就该这样，生产用正式证书后自然校验通过）
+    $body = (& curl.exe -sk -m 3 "https://127.0.0.1:$httpsPort/api/v1/health" 2>$null | Out-String)
+    if ($body -match '"status"\s*:\s*"UP"') {
+            Write-Host "[up]      健康检查通过：$($body.Trim())"
             Write-Host ""
-            Write-Host "[up] 打开 http://localhost:$port"
-            Write-Host "[up] 查看状态：docker compose -f $composeDir\compose.yaml ps"
+            Write-Host "[up] 打开 https://localhost:$httpsPort"
+            Write-Host "[up] 查看状态：docker compose ps"
             exit 0
-        }
-    } catch {
-        Start-Sleep -Seconds 5
     }
+    Start-Sleep -Seconds 5
 }
 
 Write-Host "[up] 健康检查未通过，查看日志："
-& $dockerExe compose logs --tail 40
+# COMPOSE_FILE 里是相对路径，必须在 compose 目录下执行
+Push-Location $composeDir
+try { & $dockerExe compose logs --tail 40 } finally { Pop-Location }
 exit 1
