@@ -103,6 +103,7 @@ class AdminInviteManagementTest {
                 .andExpect(status().isForbidden());
     }
 
+
     @Test
     void 普通成员看不到邀请列表() throws Exception {
         User member = persist("invmem", Role.MEMBER);

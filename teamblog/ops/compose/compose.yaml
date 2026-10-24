@@ -49,6 +49,8 @@ services:
       ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
       SUMMARIZER_URL: http://ai:8000
       INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:-dev-internal-secret}
+      # 是否允许签发 ADMIN 角色的邀请；默认 ${INVITE_ALLOW_ADMIN:-false}
+      INVITE_ALLOW_ADMIN: ${INVITE_ALLOW_ADMIN:-false}
       TZ: Asia/Shanghai
     volumes:
       # 上传目录与 nginx 共享：api 写，nginx 直接读，静态文件不经过 Java
