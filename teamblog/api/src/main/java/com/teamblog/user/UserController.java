@@ -2,9 +2,12 @@ package com.teamblog.user;
 
 import com.teamblog.auth.AuthPrincipal;
 import com.teamblog.common.ApiResponse;
+import com.teamblog.common.PageResponse;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 /**
@@ -27,5 +30,19 @@ public class UserController {
     @GetMapping("/me")
     public ApiResponse<UserResponse> me(@AuthenticationPrincipal AuthPrincipal principal) {
         return ApiResponse.ok(userService.getMe(principal.id()));
+    }
+
+    /** 成员列表：公开，访客也能看到团队有哪些人（A-08 的游标分页）。 */
+    @GetMapping("/users")
+    public ApiResponse<PageResponse<UserCardResponse>> listMembers(
+            @RequestParam(required = false) String cursor,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ApiResponse.ok(userService.listMembers(cursor, limit));
+    }
+
+    /** 公开资料：邮箱是否返回由 email_public 决定（S-10）。 */
+    @GetMapping("/users/{username}")
+    public ApiResponse<UserResponse> profile(@PathVariable String username) {
+        return ApiResponse.ok(userService.getPublicProfile(username));
     }
 }

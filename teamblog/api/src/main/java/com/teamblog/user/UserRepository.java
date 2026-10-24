@@ -1,9 +1,12 @@
 package com.teamblog.user;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.OffsetDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -31,4 +34,24 @@ public interface UserRepository extends JpaRepository<User, UUID> {
     boolean existsByUsername(String username);
 
     boolean existsByEmail(String email);
+
+    /*
+     * 分页查询用 keyset（游标）而不是 offset：
+     *   第 2 页 = "接着这一条之后"，而不是"跳过 20 条"。
+     * 排序必须是严格全序 —— created_at 可能重复（同一个事务插入的行时间相同），
+     * 所以再用 id 作为 tiebreaker，否则边界处会重复或丢行。
+     */
+
+    @Query("select u from User u where u.deletedAt is null order by u.createdAt desc, u.id desc")
+    List<User> findFirstPage(Pageable pageable);
+
+    @Query("""
+            select u from User u
+             where u.deletedAt is null
+               and (u.createdAt < :createdAt or (u.createdAt = :createdAt and u.id < :id))
+             order by u.createdAt desc, u.id desc
+            """)
+    List<User> findPageAfter(@Param("createdAt") OffsetDateTime createdAt,
+                             @Param("id") UUID id,
+                             Pageable pageable);
 }

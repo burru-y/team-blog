@@ -4,6 +4,7 @@ import type {
   InviteInfo,
   RegisterRequest,
   TokenResponse,
+  UserPage,
   UserResponse,
 } from "./types";
 
@@ -30,14 +31,16 @@ type RequestOptions = {
   method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
   token?: string | null;
+  /** 服务端组件用：Node 里没有"当前站点"，必须给绝对地址。 */
+  base?: string;
 };
 
-async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
-  const { method = "GET", body, token } = options;
+export async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = "GET", body, token, base = "" } = options;
 
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(base + path, {
       method,
       cache: "no-store",
       headers: {
@@ -91,4 +94,23 @@ export const api = {
       body: payload,
     });
   },
+
+  /** 成员列表（公开）。客户端走同源代理，服务端用 server-api。 */
+  listMembers(cursor?: string, limit = 20): Promise<UserPage> {
+    return request<UserPage>(`/api/v1/users?${pageQuery(cursor, limit)}`);
+  },
+
+  /** 公开资料（公开）。 */
+  getUserProfile(username: string): Promise<UserResponse> {
+    return request<UserResponse>(`/api/v1/users/${encodeURIComponent(username)}`);
+  },
 };
+
+export function pageQuery(cursor?: string, limit = 20): string {
+  const params = new URLSearchParams();
+  if (cursor) {
+    params.set("cursor", cursor);
+  }
+  params.set("limit", String(limit));
+  return params.toString();
+}

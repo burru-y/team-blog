@@ -18,6 +18,15 @@ export type InviteInfo = Required<NonNullable<components["schemas"]["ApiInviteIn
 
 export type InviteCreated = Required<NonNullable<components["schemas"]["ApiInviteCreated"]["data"]>>;
 
+/** 成员列表里的一张卡片（列表不返回邮箱等详情字段）。 */
+export type UserCard = Required<components["schemas"]["UserCardResponse"]>;
+
+/** 游标分页信封（A-08）。 */
+export type UserPage = {
+  items: UserCard[];
+  nextCursor: string | null;
+};
+
 export type LoginRequest = components["schemas"]["LoginRequest"];
 
 export type RegisterRequest = components["schemas"]["RegisterRequest"];

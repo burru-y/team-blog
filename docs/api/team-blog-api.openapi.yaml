@@ -269,6 +269,83 @@ paths:
         '410':
           $ref: '#/components/responses/InviteInvalid'
 
+  /api/v1/users:
+    get:
+      tags: [user]
+      operationId: listMembers
+      summary: 成员列表（公开，游标分页）
+      description: |
+        按创建时间倒序，游标分页（A-08）：
+
+        - 第一页不带 `cursor`；之后每次把上一页返回的 `nextCursor` 原样带回
+        - `nextCursor` 为 `null` 表示没有下一页
+        - `limit` 默认 20，上限 100（超出静默收敛，不报错）
+
+        已软删的账号不会出现在列表里（D-13）。
+      security: []
+      parameters:
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            type: string
+          description: 上一页返回的 nextCursor；不透明字符串，客户端不要解析
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 20
+            minimum: 1
+            maximum: 100
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUserPage'
+        '400':
+          $ref: '#/components/responses/ValidationFailed'
+
+  /api/v1/users/{username}:
+    get:
+      tags: [user]
+      operationId: getUserProfile
+      summary: 公开资料（公开；邮箱按 email_public 决定是否返回）
+      description: |
+        访客也能访问（个人页 `/u/{username}` 的数据源）。
+
+        邮箱只在 `emailPublic = true` 时返回，否则整个字段被省略（S-10）。
+        用户名大小写不敏感，软删账号按不存在处理（404）。
+      security: []
+      parameters:
+        - name: username
+          in: path
+          required: true
+          schema:
+            type: string
+          example: member1
+      responses:
+        '200':
+          description: 成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiUser'
+        '404':
+          description: 用户不存在或已删除
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+              example:
+                ok: false
+                data: null
+                error:
+                  code: NOT_FOUND
+                  message: 用户不存在
+
 components:
   securitySchemes:
     bearerAuth:
@@ -387,6 +464,43 @@ components:
           $ref: '#/components/schemas/UserResponse'
         error:
           type: 'null'
+
+    ApiUserPage:
+      type: object
+      required: [ok, data]
+      properties:
+        ok:
+          type: boolean
+          const: true
+        data:
+          type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserCardResponse'
+            nextCursor:
+              type: [string, 'null']
+              description: null 表示没有下一页
+
+    UserCardResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        username:
+          type: string
+        role:
+          type: string
+          enum: [ADMIN, MEMBER]
+        avatarUrl:
+          type: [string, 'null']
+        bio:
+          type: [string, 'null']
+        totalPoints:
+          type: integer
 
     ApiHealth:
       type: object

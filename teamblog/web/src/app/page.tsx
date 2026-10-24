@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -9,14 +10,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { serverApi } from "@/lib/server-api";
 
 /**
- * 首页壳。
+ * 强制动态渲染。
  *
- * 现在只有骨架：成员、成果、热力图要等批次 2（真实数据）与批次 4（打卡）接入。
- * 先把"这是个团队站"的信息结构立住，比先做视觉更重要。
+ * 两个原因：
+ * 1. 数据每次都要最新（改库里的 bio 刷新即变，Gate G2 的验收方式）
+ * 2. 构建时不能依赖后端——CI 里 `pnpm build` 没有 API 在跑，静态预渲染会直接失败
+ *
+ * 注意：`no-store` 写在 fetch 里不够，因为 fetch 被包了一层，Next 的静态分析
+ * 看不穿；这里用显式声明兜底。
  */
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+/**
+ * 首页：团队介绍 + 成员列表。
+ *
+ * 数据在服务端取（T-02），所以首屏没有"先空一下再填"的闪动。
+ */
+export default async function HomePage() {
+  const page = await serverApi.listMembers(undefined, 12);
+
   return (
     <div className="space-y-10">
       <section className="space-y-4">
@@ -26,38 +41,62 @@ export default function HomePage() {
           记录团队的技术成果、学习内容与每天的学习打卡。成员可以发布项目与学习笔记，
           访客可以浏览公开内容并向 AI 提问。
         </p>
-        <div className="flex gap-3">
-          <Link href="/login" className={buttonVariants()}>
-            成员登录
-          </Link>
-          <Link href="/login" className={buttonVariants({ variant: "outline" })}>
-            凭邀请注册
-          </Link>
-        </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>成员</CardTitle>
-            <CardDescription>团队介绍与个人主页</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">批次 2 接入真实数据</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>成果</CardTitle>
-            <CardDescription>项目、证书与奖项</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">批次 3 开放发布</CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>打卡</CardTitle>
-            <CardDescription>连续天数、积分与热力图</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground">批次 4 上线</CardContent>
-        </Card>
+      <section className="space-y-4">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-xl font-semibold">团队成员</h2>
+          <span className="text-sm text-muted-foreground">共 {page.items.length} 人</span>
+        </div>
+
+        {page.items.length === 0 ? (
+          <Card>
+            <CardContent className="py-10 text-center text-sm text-muted-foreground">
+              还没有成员。管理员生成邀请链接后，成员凭链接注册。
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {page.items.map((member) => (
+              <Card key={member.id} className="transition-colors hover:border-foreground/20">
+                <CardHeader className="flex-row items-center gap-3 space-y-0">
+                  <Avatar className="size-10">
+                    <AvatarFallback>{member.username.slice(0, 2).toUpperCase()}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="truncate text-base">
+                      <Link href={`/u/${member.username}`} className="hover:underline">
+                        {member.username}
+                      </Link>
+                    </CardTitle>
+                    <CardDescription className="flex items-center gap-2">
+                      <Badge variant={member.role === "ADMIN" ? "default" : "secondary"}>
+                        {member.role === "ADMIN" ? "管理员" : "成员"}
+                      </Badge>
+                      <span>{member.totalPoints} 分</span>
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent className="text-sm text-muted-foreground">
+                  {member.bio ? (
+                    <p className="line-clamp-2">{member.bio}</p>
+                  ) : (
+                    <p className="italic">这个人很神秘，还没有写简介</p>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {page.nextCursor ? (
+          <div className="text-center">
+            {/* 批次 2 只做首屏；分页按钮等成员变多再加 */}
+            <Link href="/" className={buttonVariants({ variant: "outline" })}>
+              加载更多（下一批）
+            </Link>
+          </div>
+        ) : null}
       </section>
     </div>
   );

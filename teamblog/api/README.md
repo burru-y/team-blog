@@ -91,6 +91,19 @@ Entity      不出 Service 层；对外一律 DTO（J-36）
 | 接口全 401 | 少了 `Authorization: Bearer <token>` | 检查请求头 |
 | 队员 clone 后跑不起来 | 没建 `blog_test` 库 | `psql ... -f ops/init/02-test-db.sql` |
 
+## CI
+
+每次 push / PR 到 `main` 会跑三个 job（`.github/workflows/ci.yml`）：
+
+| job | 做什么 | 本地等价命令 |
+|---|---|---|
+| API | 起 `postgres:16` 容器 → `mvnw verify` | `./mvnw verify`（需本地 `blog_test`） |
+| Web | `pnpm install --frozen-lockfile` → lint → build | `pnpm -C ../web lint && pnpm -C ../web build` |
+| 契约 | 重新生成前端类型，`git diff` 非空即红 | 见 `web/README.md` 的"类型从哪来" |
+
+CI 用的是 service 容器而不是 Testcontainers——Runner 上跑 Testcontainers 需要
+Docker-in-Docker，而本项目本来就连真实 PostgreSQL。
+
 ## 约定
 
 编码规范见 `实施方案/07-开发规范.md`；模块讲解见 `docs/learning/`。

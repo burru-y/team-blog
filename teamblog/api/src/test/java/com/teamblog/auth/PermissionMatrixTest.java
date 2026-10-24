@@ -102,6 +102,10 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/invites/{token}", null, 200),
                 new Case(HttpMethod.POST, "/api/v1/invites/{token}/accept", null, 400),
 
+                // 公开：团队公开资料（批次 2）
+                new Case(HttpMethod.GET, "/api/v1/users", null, 200),
+                new Case(HttpMethod.GET, "/api/v1/users/{username}", null, 200),
+
                 // 需要登录
                 new Case(HttpMethod.GET, "/api/v1/me", null, 401),
                 new Case(HttpMethod.GET, "/api/v1/me", Role.MEMBER, 200),
@@ -117,7 +121,9 @@ class PermissionMatrixTest {
     @ParameterizedTest(name = "[{index}] {0} {1} 作为 {2} => {3}")
     @MethodSource("matrix")
     void 权限矩阵_三身份访问每个端点_状态码符合预期(Case testCase) throws Exception {
-        String path = testCase.pathPattern().replace("{token}", inviteTokenValue);
+        String path = testCase.pathPattern()
+                .replace("{token}", inviteTokenValue)
+                .replace("{username}", "matrix_member");
 
         MockHttpServletRequestBuilder builder = request(testCase.method(), path)
                 .contentType(MediaType.APPLICATION_JSON)

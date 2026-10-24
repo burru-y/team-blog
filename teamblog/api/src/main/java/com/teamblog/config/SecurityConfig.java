@@ -61,6 +61,8 @@ public class SecurityConfig {
                                 "/api/v1/auth/logout").permitAll()
                         // 邀请注册：注册人当然还没有账号
                         .requestMatchers("/api/v1/invites/**").permitAll()
+                        // 团队公开资料：访客（未登录）也要能浏览成员与个人页（批次 2 的 Gate）
+                        .requestMatchers(HttpMethod.GET, "/api/v1/users/**").permitAll()
                         // 管理员域：URL 级规则，写接口的统一入口（S-01 的第一道）
                         .requestMatchers("/api/v1/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

@@ -169,6 +169,55 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 成员列表（公开，游标分页）
+         * @description 按创建时间倒序，游标分页（A-08）：
+         *
+         *     - 第一页不带 `cursor`；之后每次把上一页返回的 `nextCursor` 原样带回
+         *     - `nextCursor` 为 `null` 表示没有下一页
+         *     - `limit` 默认 20，上限 100（超出静默收敛，不报错）
+         *
+         *     已软删的账号不会出现在列表里（D-13）。
+         */
+        get: operations["listMembers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/users/{username}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * 公开资料（公开；邮箱按 email_public 决定是否返回）
+         * @description 访客也能访问（个人页 `/u/{username}` 的数据源）。
+         *
+         *     邮箱只在 `emailPublic = true` 时返回，否则整个字段被省略（S-10）。
+         *     用户名大小写不敏感，软删账号按不存在处理（404）。
+         */
+        get: operations["getUserProfile"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -194,6 +243,25 @@ export interface components {
             ok: true;
             data: components["schemas"]["UserResponse"];
             error?: null;
+        };
+        ApiUserPage: {
+            /** @constant */
+            ok: true;
+            data: {
+                items: components["schemas"]["UserCardResponse"][];
+                /** @description null 表示没有下一页 */
+                nextCursor?: string | null;
+            };
+        };
+        UserCardResponse: {
+            /** Format: uuid */
+            id?: string;
+            username?: string;
+            /** @enum {string} */
+            role?: "ADMIN" | "MEMBER";
+            avatarUrl?: string | null;
+            bio?: string | null;
+            totalPoints?: number;
         };
         ApiHealth: {
             ok?: boolean;
@@ -583,6 +651,73 @@ export interface operations {
                 };
             };
             410: components["responses"]["InviteInvalid"];
+        };
+    };
+    listMembers: {
+        parameters: {
+            query?: {
+                /** @description 上一页返回的 nextCursor；不透明字符串，客户端不要解析 */
+                cursor?: string;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiUserPage"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+        };
+    };
+    getUserProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @example member1 */
+                username: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description 成功 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiUser"];
+                };
+            };
+            /** @description 用户不存在或已删除 */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "ok": false,
+                     *       "data": null,
+                     *       "error": {
+                     *         "code": "NOT_FOUND",
+                     *         "message": "用户不存在"
+                     *       }
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ApiError"];
+                };
+            };
         };
     };
 }
