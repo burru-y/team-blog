@@ -85,9 +85,13 @@
 
 ### 4.2 启动
 
+双击仓库根目录的 `start.bat`，或在命令行执行：
+
 ```powershell
 powershell -ExecutionPolicy Bypass -File teamblog/ops/compose/up.ps1
 ```
+
+`start.bat` 会依次启动容器栈，并询问是否开启公网隧道。停止服务双击 `stop.bat`（数据保留在 Docker 卷中）。
 
 该脚本依次完成：引擎检测、`.env` 生成（随机数据库密码与 JWT 密钥）、TLS 证书生成、镜像构建、容器启动、健康检查。
 
