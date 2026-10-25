@@ -58,6 +58,7 @@ export default async function HomePage() {
 
         <p className="text-sm text-muted-foreground">
           东方欲晓，莫道君行早。
+          <span className="ml-2 text-xs text-muted-foreground/70">—— 毛泽东《清平乐·会昌》</span>
         </p>
 
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
