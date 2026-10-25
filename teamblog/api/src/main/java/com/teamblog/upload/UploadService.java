@@ -60,9 +60,11 @@ public class UploadService {
     );
 
     private final UploadProperties properties;
+    private final OssStorage oss;
 
-    public UploadService(UploadProperties properties) {
+    public UploadService(UploadProperties properties, OssStorage oss) {
         this.properties = properties;
+        this.oss = oss;
     }
 
     /** 存图片，返回可访问的相对 URL（生产由 Nginx 直接服务这个目录）。 */
@@ -81,8 +83,15 @@ public class UploadService {
         }
 
         String fileName = UuidUtils.v7() + "." + IMAGE_SIGNATURES_TO_EXT.get(mime);
-        writeToDisk(fileName, bytes);
 
+        // 优先 OSS：图片与服务器解耦，换机器不用搬文件
+        String remoteUrl = oss.put("uploads/" + fileName, bytes, mime);
+        if (remoteUrl != null) {
+            return new StoredImage(remoteUrl, mime, bytes.length);
+        }
+
+        // OSS 没配或上传失败：退回本地，保证功能不中断
+        writeToDisk(fileName, bytes);
         return new StoredImage("/uploads/" + fileName, mime, bytes.length);
     }
 

@@ -72,9 +72,18 @@ ai:
     timeout: 20s
 
 upload:
-  dir: ${UPLOAD_DIR:./uploads}         # 容器里挂成 /app/uploads
+  dir: ${UPLOAD_DIR:./uploads}         # 容器里挂成 /app/uploads（未配 OSS 时才用）
   max-image-size: 5MB
   max-code-size: 256KB
+
+# 图片对象存储。五项都配置才启用；缺任意一项就退回本地磁盘，
+# 所以本地开发不用配这些，也不影响启动。
+oss:
+  endpoint: ${OSS_ENDPOINT:}
+  bucket: ${OSS_BUCKET:}
+  access-key-id: ${OSS_ACCESS_KEY_ID:}
+  access-key-secret: ${OSS_ACCESS_KEY_SECRET:}
+  public-base-url: ${OSS_PUBLIC_BASE_URL:}
 
 ---
 # 本地开发：额外加载种子（R__seed_dev.sql），生产不加载

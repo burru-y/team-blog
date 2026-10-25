@@ -56,6 +56,12 @@ services:
       SUMMARIZER_URL: http://ai:8000
       INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:?INTERNAL_HMAC_SECRET 必须设置}
       INVITE_ALLOW_ADMIN: ${INVITE_ALLOW_ADMIN:-false}
+      # 图片对象存储：四项都填才启用，否则退回本地目录
+      OSS_ENDPOINT: ${OSS_ENDPOINT:-}
+      OSS_BUCKET: ${OSS_BUCKET:-}
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID:-}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET:-}
+      OSS_PUBLIC_BASE_URL: ${OSS_PUBLIC_BASE_URL:-}
       TZ: Asia/Shanghai
     volumes:
       - uploads:/app/uploads

@@ -30,6 +30,13 @@
         <java.version>17</java.version>
     </properties>
     <dependencies>
+        <!-- 图片存 OSS：S3 兼容但用官方 SDK 省掉签名细节 -->
+        <dependency>
+            <groupId>com.aliyun.oss</groupId>
+            <artifactId>aliyun-sdk-oss</artifactId>
+            <version>3.18.1</version>
+        </dependency>
+
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
