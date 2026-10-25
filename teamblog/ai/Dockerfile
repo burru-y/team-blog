@@ -9,7 +9,7 @@ WORKDIR /app
 
 # 依赖层单独一层：改代码不会重装依赖
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -i https://mirrors.aliyun.com/pypi/simple/ -r requirements.txt
 
 COPY app/ app/
 

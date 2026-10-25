@@ -3,13 +3,14 @@ FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /build
 
 # 先只拷 pom，让依赖层可以被缓存：改代码不会重下依赖
+COPY docker/maven-settings.xml /root/.m2/settings.xml
 COPY pom.xml .
 COPY .mvn/ .mvn/
 COPY mvnw .
-RUN chmod +x mvnw && ./mvnw -B -q dependency:go-offline
+RUN chmod +x mvnw && ./mvnw -B -q -s /root/.m2/settings.xml dependency:go-offline
 
 COPY src/ src/
-RUN ./mvnw -B -q -DskipTests package
+RUN ./mvnw -B -q -s /root/.m2/settings.xml -DskipTests package
 
 # ---- 运行阶段 ----
 FROM eclipse-temurin:17-jre-alpine AS runtime
@@ -20,7 +21,9 @@ ENV TZ=Asia/Shanghai \
     SPRING_PROFILES_ACTIVE=prod \
     JAVA_OPTS="-XX:MaxRAMPercentage=70 -XX:+UseSerialGC"
 
-RUN apk add --no-cache tzdata curl && \
+# apk 换阿里云镜像：官方源在国内常慢到 3-5 分钟
+RUN sed -i 's|dl-cdn.alpinelinux.org|mirrors.aliyun.com|g' /etc/apk/repositories && \
+    apk add --no-cache tzdata curl && \
     addgroup -S app && adduser -S app -G app
 
 WORKDIR /app

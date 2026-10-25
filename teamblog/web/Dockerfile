@@ -3,7 +3,10 @@ FROM node:22-alpine AS build
 WORKDIR /app
 
 # 版本必须和本地一致：pnpm 11 会重写 lockfile，导致 --frozen-lockfile 失败
-RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
+# corepack prepare 要从 npm registry 下 pnpm 本体，先指到国内源再装
+RUN npm config set registry https://registry.npmmirror.com && \
+    corepack enable && \
+    corepack prepare pnpm@10.34.5 --activate
 
 # 同样先拷 lockfile，让依赖层可缓存
 COPY package.json pnpm-lock.yaml ./
