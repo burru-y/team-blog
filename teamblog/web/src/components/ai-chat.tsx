@@ -25,6 +25,8 @@ export function AiChat({ projectId }: { projectId: string }) {
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
+  // 等待首字时显示已用时间：用户看到数字在动，就不会以为卡死
+  const [elapsed, setElapsed] = useState(0);
   const controllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
 
@@ -36,6 +38,18 @@ export function AiChat({ projectId }: { projectId: string }) {
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
   }, [turns]);
+
+  useEffect(() => {
+    if (!busy) {
+      setElapsed(0);
+      return;
+    }
+    const startedAt = Date.now();
+    const timer = window.setInterval(() => {
+      setElapsed(Math.floor((Date.now() - startedAt) / 1000));
+    }, 500);
+    return () => window.clearInterval(timer);
+  }, [busy]);
 
   function close() {
     controllerRef.current?.abort();
@@ -117,9 +131,19 @@ export function AiChat({ projectId }: { projectId: string }) {
             turns.map((turn, index) => (
               <div key={index} className="space-y-2">
                 <p className="text-sm font-medium">问：{turn.question}</p>
-                <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                  {turn.answer || (busy && index === turns.length - 1 ? "思考中…" : "")}
-                </p>
+                {turn.answer ? (
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
+                    {turn.answer}
+                    {busy && index === turns.length - 1 ? (
+                      <span
+                        aria-hidden
+                        className="animate-caret ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-foreground"
+                      />
+                    ) : null}
+                  </p>
+                ) : busy && index === turns.length - 1 ? (
+                  <ThinkingRow elapsed={elapsed} />
+                ) : null}
                 {turn.error ? <p className="text-sm text-destructive">{turn.error}</p> : null}
               </div>
             ))
@@ -156,6 +180,30 @@ export function AiChat({ projectId }: { projectId: string }) {
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+/**
+ * 等待首字的思考态。
+ *
+ * 这一段是空的：SSE 连上了但模型还没吐字，可能是 1 秒也可能是 9 秒。
+ * 只放三个点在动不够，用户不知道等了多久；带上秒数就能自己判断要不要继续等。
+ */
+function ThinkingRow({ elapsed }: { elapsed: number }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="flex gap-1" aria-hidden>
+        {[0, 0.15, 0.3].map((delay) => (
+          <span
+            key={delay}
+            className="animate-thinking size-1.5 rounded-full bg-current"
+            style={{ animationDelay: `${delay}s` }}
+          />
+        ))}
+      </span>
+      <span>正在查阅项目资料</span>
+      {elapsed > 0 ? <span className="tabular-nums">{elapsed}s</span> : null}
     </div>
   );
 }
