@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { serverApi } from "@/lib/server-api";
@@ -37,33 +38,26 @@ export default async function ProjectsPage() {
           }
         />
       ) : (
-        <ul className="divide-y border-t">
+        <div className="grid gap-4 sm:grid-cols-2">
           {page.items.map((project) => (
-            <li key={project.id}>
-              <Link
-                href={`/projects/${project.id}`}
-                className="group flex flex-col gap-2 px-1 py-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-baseline sm:gap-6"
-              >
-                <div className="flex shrink-0 items-center gap-2 sm:w-32">
+            <TiltCard key={project.id} className="border bg-card" max={6}>
+              <Link href={`/projects/${project.id}`} className="flex h-full flex-col gap-3 p-5">
+                <div className="flex items-center justify-between gap-2">
                   <span className="text-xs tracking-wide text-muted-foreground uppercase">
                     {TYPE_LABEL[project.type] ?? project.type}
                   </span>
+                  <span className="text-xs text-muted-foreground">{project.ownerUsername}</span>
                 </div>
 
-                <div className="min-w-0 flex-1 space-y-1">
-                  <p className="font-medium group-hover:underline">{project.title}</p>
-                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
-                    {project.description}
-                  </p>
-                </div>
+                <p className="font-medium">{project.title}</p>
 
-                <div className="shrink-0 text-xs text-muted-foreground sm:w-24 sm:text-right">
-                  {project.ownerUsername}
-                </div>
+                <p className="line-clamp-3 flex-1 text-sm leading-relaxed text-muted-foreground">
+                  {project.description}
+                </p>
               </Link>
-            </li>
+            </TiltCard>
           ))}
-        </ul>
+        </div>
       )}
     </div>
   );

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityCard } from "@/components/activity-card";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { toContributions } from "@/lib/contributions";
 import { ProfileEditor } from "@/components/profile-editor";
 import { ApiError } from "@/lib/api";
@@ -118,18 +119,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {projects.items.map((project) => (
-              <Link
-                key={project.id}
-                href={`/projects/${project.id}`}
-                className="flex items-baseline justify-between gap-3 rounded-lg border px-4 py-3 transition-colors hover:border-foreground/20"
-              >
-                <span className="truncate font-medium">{project.title}</span>
-                <span className="shrink-0 text-xs text-muted-foreground">
-                  {new Date(project.createdAt).toLocaleDateString("zh-CN")}
-                </span>
-              </Link>
+              <TiltCard key={project.id} className="border bg-card" max={5}>
+                <Link href={`/projects/${project.id}`} className="flex h-full flex-col gap-2 p-4">
+                  <span className="truncate font-medium">{project.title}</span>
+                  <span className="mt-auto text-xs text-muted-foreground">
+                    {new Date(project.createdAt).toLocaleDateString("zh-CN")}
+                  </span>
+                </Link>
+              </TiltCard>
             ))}
           </div>
         )}
@@ -153,16 +152,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             {logs.map((log) => (
-              <Link
-                key={log.id}
-                href={`/learning/${log.id}`}
-                className="flex items-baseline justify-between rounded-lg border px-4 py-3 transition-colors hover:border-foreground/20"
-              >
-                <span className="font-medium">{log.title}</span>
-                <span className="text-xs text-muted-foreground">{log.logDate}</span>
-              </Link>
+              <TiltCard key={log.id} className="border bg-card" max={5}>
+                <Link href={`/learning/${log.id}`} className="flex h-full flex-col gap-2 p-4">
+                  <span className="font-medium">{log.title}</span>
+                  <span className="mt-auto text-xs text-muted-foreground">{log.logDate}</span>
+                </Link>
+              </TiltCard>
             ))}
           </div>
         )}
