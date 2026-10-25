@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AiChat } from "@/components/ai-chat";
 import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
 import { SummaryGenerator } from "@/components/summary-generator";
@@ -60,6 +61,9 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
       />
 
       <Markdown>{log.contentMd}</Markdown>
+
+      {/* 笔记也能问 AI：与项目详情页保持同一个入口位置（正文后、评论前） */}
+      <AiChat noteId={log.id} />
 
       <Comments targetType="LEARNING_LOG" targetId={log.id} initial={comments} />
 

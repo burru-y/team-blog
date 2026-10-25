@@ -4,7 +4,7 @@ import { ArrowUp, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { streamProjectChat } from "@/lib/ai";
+import { streamNoteChat, streamProjectChat } from "@/lib/ai";
 import { useSession } from "@/lib/session";
 
 type Turn = { question: string; answer: string; error?: string };
@@ -20,7 +20,12 @@ type Turn = { question: string; answer: string; error?: string };
  *   2. 正在输出        → 文本后跟闪烁光标
  *   3. 出错            → 气泡内的错误文案，按 429/503/断网分别给不同建议
  */
-export function AiChat({ projectId }: { projectId: string }) {
+export function AiChat({ projectId, noteId }: { projectId?: string; noteId?: string }) {
+  // 同一个面板服务两种对象：项目问答与笔记问答。差别只有接口与文案，
+  // 流式解析、思考态、光标、额度提示全部共用，避免两处实现逐渐跑偏。
+  const isNote = Boolean(noteId);
+  const subject = isNote ? "这篇笔记" : "这个项目";
+
   const { token } = useSession();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
@@ -71,7 +76,11 @@ export function AiChat({ projectId }: { projectId: string }) {
     setBusy(true);
     setTurns((prev) => [...prev, { question: text, answer: "" }]);
 
-    await streamProjectChat(projectId, text, {
+    const stream = isNote
+      ? (q: string, h: Parameters<typeof streamProjectChat>[2]) => streamNoteChat(noteId!, q, h)
+      : (q: string, h: Parameters<typeof streamProjectChat>[2]) => streamProjectChat(projectId!, q, h);
+
+    await stream(text, {
       signal: controller.signal,
       // 带上 token：访客用受限档，登录成员自动升到成员档
       token,
@@ -111,9 +120,11 @@ export function AiChat({ projectId }: { projectId: string }) {
           <Sparkles className="size-5" aria-hidden />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block font-medium">就这个项目问 AI</span>
+          <span className="block font-medium">
+            {isNote ? "就这篇笔记问 AI" : "就这个项目问 AI"}
+          </span>
           <span className="block text-xs text-muted-foreground">
-            回答只依据项目资料，不编造；{token ? "成员不限次数" : "访客每天 8 次"}
+            回答只依据{isNote ? "笔记内容" : "项目资料"}，不编造；{token ? "成员不限次数" : "访客每天 8 次"}
           </span>
         </span>
         <span className="shrink-0 text-sm text-brand">开始对话 →</span>
@@ -129,10 +140,10 @@ export function AiChat({ projectId }: { projectId: string }) {
           <div className="min-w-0">
             <p className="flex items-center gap-1.5 text-sm font-medium">
               <Sparkles className="size-3.5 text-brand" aria-hidden />
-              项目问答
+              {isNote ? "笔记问答" : "项目问答"}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {token ? "已登录：不限次数，可问通用问题" : "访客模式：每天 8 次，仅限本项目内容"}
+              {token ? "已登录：不限次数，可问通用问题" : `访客模式：每天 8 次，仅限${subject}内容`}
             </p>
           </div>
           <Button variant="ghost" size="sm" onClick={close} aria-label="关闭">
@@ -144,9 +155,12 @@ export function AiChat({ projectId }: { projectId: string }) {
         <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {turns.length === 0 ? (
             <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">问点什么？回答只依据这个项目的资料。</p>
+              <p className="text-sm text-muted-foreground">问点什么？回答只依据{isNote ? "这篇笔记" : "这个项目"}的资料。</p>
               <div className="flex flex-wrap gap-2">
-                {["这个项目解决了什么问题？", "用了哪些技术？", "怎么部署的？"].map((item) => (
+                {(isNote
+                  ? ["这篇笔记讲了什么？", "里面的方法怎么用？", "有哪里可能出错？"]
+                  : ["这个项目解决了什么问题？", "用了哪些技术？", "怎么部署的？"]
+                ).map((item) => (
                   <button
                     key={item}
                     type="button"
@@ -250,7 +264,7 @@ function ThinkingRow({ elapsed }: { elapsed: number }) {
           />
         ))}
       </span>
-      <span>正在查阅项目资料</span>
+      <span>正在查阅资料</span>
       {elapsed > 0 ? <span className="tabular-nums">{elapsed}s</span> : null}
     </div>
   );

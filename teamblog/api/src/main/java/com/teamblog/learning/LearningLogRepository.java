@@ -12,4 +12,7 @@ public interface LearningLogRepository extends JpaRepository<LearningLog, UUID> 
     long countByUserIdAndLogDate(UUID userId, LocalDate logDate);
 
     List<LearningLog> findByUserIdOrderByLogDateDescCreatedAtDesc(UUID userId);
+
+    /** 全站最新笔记（首页展示用）：按发布日期倒序，同一天按创建时间倒序。 */
+    List<LearningLog> findAllByOrderByLogDateDescCreatedAtDesc(org.springframework.data.domain.Pageable pageable);
 }

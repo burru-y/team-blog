@@ -38,9 +38,22 @@ public class LearningLogController {
         this.learningLogService = learningLogService;
     }
 
-    /** 某人的学习内容列表（公开）。 */
+    /**
+     * 学习内容列表（公开）。
+     *
+     * <p>两种用法：
+     * <ul>
+     *   <li>带 username：某个人的全部笔记（个人主页用）</li>
+     *   <li>不带 username：全站最新 limit 条（首页用）</li>
+     * </ul>
+     */
     @GetMapping
-    public ApiResponse<List<LearningLogResponse>> listByUser(@RequestParam String username) {
+    public ApiResponse<List<LearningLogResponse>> list(
+            @RequestParam(required = false) String username,
+            @RequestParam(defaultValue = "5") int limit) {
+        if (username == null || username.isBlank()) {
+            return ApiResponse.ok(learningLogService.listLatest(limit));
+        }
         return ApiResponse.ok(learningLogService.listByUser(username));
     }
 

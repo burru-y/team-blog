@@ -76,13 +76,75 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
-function currentTitle(pathname: string) {
-  const all = [...MAIN_NAV, ...MEMBER_NAV, ...ADMIN_NAV];
-  const hit = all
-    .slice()
-    .sort((a, b) => b.href.length - a.href.length)
-    .find((item) => isActive(pathname, item.href));
-  return hit?.label ?? "欲晓";
+/** 一级路径 → 中文名。没登记的路径直接用路径本身，不会显示成乱码。 */
+const SEGMENT_LABEL: Record<string, string> = {
+  projects: "成果",
+  learning: "笔记",
+  timeline: "时间线",
+  feedback: "留言",
+  publish: "发布",
+  admin: "后台",
+  u: "成员",
+  login: "登录",
+  join: "邀请",
+};
+
+type Crumb = { label: string; href: string };
+
+/**
+ * 把当前路径拆成面包屑。
+ *
+ * 详情页（/projects/xxx）只显示「成果 / 详情」，不显示那串 UUID——
+ * 对用户没有意义，还会把标题栏挤满。
+ */
+function crumbsFor(pathname: string): Crumb[] {
+  const segments = pathname.split("/").filter(Boolean);
+  const out: Crumb[] = [{ label: "首页", href: "/" }];
+  let href = "";
+
+  segments.forEach((segment, index) => {
+    href += `/${segment}`;
+    const isLast = index === segments.length - 1;
+    const parent = segments[index - 1];
+    const label = SEGMENT_LABEL[segment]
+      ?? (parent ? (isLast ? (parent === "u" ? `@${segment}` : "详情") : segment) : segment);
+    out.push({ label, href });
+  });
+
+  return out;
+}
+
+function Breadcrumbs({ pathname }: { pathname: string }) {
+  const crumbs = crumbsFor(pathname);
+
+  return (
+    <nav aria-label="当前位置" className="min-w-0">
+      <ol className="flex min-w-0 items-center gap-1.5 text-sm">
+        {crumbs.map((crumb, index) => {
+          const isLast = index === crumbs.length - 1;
+          return (
+            <li key={crumb.href} className="flex min-w-0 items-center gap-1.5">
+              {index > 0 ? (
+                <span aria-hidden className="text-muted-foreground/50">
+                  /
+                </span>
+              ) : null}
+              {isLast ? (
+                <span className="truncate font-medium">{crumb.label}</span>
+              ) : (
+                <Link
+                  href={crumb.href}
+                  className="truncate text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  {crumb.label}
+                </Link>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -229,7 +291,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <PanelLeft aria-hidden className="size-4" />
           </AnimatedSidebarTrigger>
           <div className="h-5 w-px bg-border" />
-          <p className="truncate text-sm font-medium">{currentTitle(pathname)}</p>
+          <Breadcrumbs pathname={pathname} />
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">

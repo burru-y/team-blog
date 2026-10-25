@@ -30,6 +30,13 @@ export const serverApi = {
     return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, { base: ORIGIN });
   },
 
+  /** 全站最新笔记（首页模块用）。不传 username 时后端返回最新 limit 条。 */
+  listLatestLearningLogs(limit = 5): Promise<LearningLogResponse[]> {
+    return request<LearningLogResponse[]>(`/api/v1/learning-logs?limit=${limit}`, {
+      base: ORIGIN,
+    });
+  },
+
   listLearningLogs(username: string): Promise<LearningLogResponse[]> {
     return request<LearningLogResponse[]>(
       `/api/v1/learning-logs?username=${encodeURIComponent(username)}`,

@@ -60,6 +60,11 @@ class ChatRequest(BaseModel):
     question: str
 
 
+class NoteChatRequest(BaseModel):
+    note_id: Annotated[str, Field(validation_alias=AliasChoices("noteId", "note_id"))]
+    question: str
+
+
 class SummarizeRequest(BaseModel):
     content: str
 
@@ -115,6 +120,59 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
     )
     logger.info("问答 tier=%s model=%s q=%r", identity.tier.value, identity.model, question[:30])
 
+    return _chat_stream(prompt, identity, request)
+
+
+@app.post("/v1/note-chat")
+async def note_chat(payload: NoteChatRequest, request: Request) -> StreamingResponse:
+    """就一篇学习笔记提问。
+
+    与项目问答共用额度、分档和 SSE 流程，区别只在资料从哪来：
+    项目读 v_projects_public，笔记读 learning_logs。
+    """
+    if not settings.enabled:
+        raise HTTPException(status_code=503, detail="AI 功能已关闭")
+
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="问题不能为空")
+    if len(question) > settings.max_question_chars:
+        raise HTTPException(status_code=400, detail=f"问题太长（上限 {settings.max_question_chars} 字）")
+
+    note = await repo.get_learning_note(payload.note_id)
+    if note is None:
+        raise HTTPException(status_code=404, detail="笔记不存在")
+
+    identity = auth.resolve_identity(
+        request.headers.get("authorization"), _client_key(request), settings
+    )
+    if not quota.try_consume(identity.quota_key, identity.daily_limit):
+        raise HTTPException(status_code=429, detail="今天的提问次数已用完")
+
+    if prompts.content_is_sparse({"description": "", "content_md": note["content_md"]},
+                                 settings.min_usable_content_chars):
+        return _plain_stream(prompts.SPARSE_NOTE_REPLY,
+                             quota.remaining(identity.quota_key, identity.daily_limit))
+
+    prompt = prompts.note_chat_prompt(
+        title=note["title"],
+        author=note["author"],
+        date=note["log_date"],
+        content_md=note["content_md"],
+        question=question,
+        max_chars=identity.max_answer_chars,
+    )
+    logger.info("笔记问答 tier=%s model=%s q=%r", identity.tier.value, identity.model, question[:30])
+
+    return _chat_stream(prompt, identity, request)
+
+
+def _chat_stream(prompt: str, identity, request: Request) -> StreamingResponse:
+    """把 prompt 送进模型并按 SSE 返回。
+
+    项目问答与笔记问答共用这一段：分档参数、心跳、断开处理、空回答兜底
+    都在这里，任何一个端点改了行为，两个入口保持一致。
+    """
     async def event_stream() -> AsyncIterator[bytes]:
         # X-Accel-Buffering 由路由统一加；这里是内容
         def sse(event: str, data: dict) -> bytes:
@@ -165,7 +223,6 @@ async def project_chat(payload: ChatRequest, request: Request) -> StreamingRespo
             "Connection": "keep-alive",
         },
     )
-
 
 def _plain_stream(text: str, remaining: int) -> StreamingResponse:
     """不调模型、直接回一段固定文本（仍是标准 SSE 事件，前端不用特殊处理）。"""

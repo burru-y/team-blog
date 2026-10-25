@@ -23,15 +23,32 @@ export async function streamProjectChat(
   question: string,
   handlers: StreamHandlers,
 ): Promise<void> {
+  return streamChat("/ai/v1/project-chat", { projectId, question }, handlers);
+}
+
+/** 就一篇学习笔记提问。与项目问答共用同一套 SSE 解析。 */
+export async function streamNoteChat(
+  noteId: string,
+  question: string,
+  handlers: StreamHandlers,
+): Promise<void> {
+  return streamChat("/ai/v1/note-chat", { noteId, question }, handlers);
+}
+
+async function streamChat(
+  path: string,
+  body: Record<string, unknown>,
+  handlers: StreamHandlers,
+): Promise<void> {
   let response: Response;
   try {
-    response = await fetch("/ai/v1/project-chat", {
+    response = await fetch(path, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         ...(handlers.token ? { Authorization: `Bearer ${handlers.token}` } : {}),
       },
-      body: JSON.stringify({ projectId, question }),
+      body: JSON.stringify(body),
       signal: handlers.signal,
     });
   } catch {

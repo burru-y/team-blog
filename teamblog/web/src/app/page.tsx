@@ -38,6 +38,8 @@ export default async function HomePage() {
   const page = await serverApi.listMembers(undefined, 12);
   // 热力图是团队视角：不给 username。失败不该让首页整页挂掉，所以单独兜住
   const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
+  // 最新笔记：接口失败不影响首页其他部分
+  const notes = await serverApi.listLatestLearningLogs(5).catch(() => []);
 
   const checkin = heatmap ? Object.values(heatmap.days).reduce((sum, n) => sum + n, 0) : 0;
   const activeDays = heatmap ? Object.keys(heatmap.days).length : 0;
@@ -161,6 +163,34 @@ export default async function HomePage() {
             </Link>
           </div>
         ) : null}
+      </section>
+
+      <section className="space-y-4 border-t pt-6">
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-xl font-semibold tracking-tight">最新笔记</h2>
+          <span className="text-sm text-muted-foreground">{notes.length} 篇</span>
+        </div>
+
+        {notes.length === 0 ? (
+          <EmptyState title="还没有笔记" description="成员写下的学习内容会出现在这里。" />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {notes.map((note) => (
+              <TiltCard key={note.id} className="border bg-card" max={5} glare={false}>
+                <Link href={`/learning/${note.id}`} className="flex h-full flex-col gap-2 p-5">
+                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
+                    <span className="truncate">{note.ownerUsername}</span>
+                    <time className="shrink-0">{note.logDate}</time>
+                  </div>
+                  <p className="line-clamp-2 font-medium">{note.title}</p>
+                  <p className="line-clamp-3 flex-1 text-xs leading-relaxed text-muted-foreground">
+                    {note.summaryMd || "（没有摘要，点开看全文）"}
+                  </p>
+                </Link>
+              </TiltCard>
+            ))}
+          </div>
+        )}
       </section>
 
       <section className="space-y-3 border-t pt-6">

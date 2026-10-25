@@ -111,7 +111,8 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/projects/{id}", null, 404),
 
                 // 公开：学习内容（列表必须带 username，缺参数返回 400）
-                new Case(HttpMethod.GET, "/api/v1/learning-logs", null, 400),
+                // 不带 username 时返回全站最新笔记（首页模块），匿名可读，所以是 200 而不是 400
+                new Case(HttpMethod.GET, "/api/v1/learning-logs", null, 200),
                 new Case(HttpMethod.GET, "/api/v1/learning-logs/{id}", null, 404),
 
                 // 需要登录：发布 / 编辑学习内容

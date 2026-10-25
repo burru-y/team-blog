@@ -66,6 +66,12 @@ if ($All -or -not $Service) {
 }
 if ($LASTEXITCODE -ne 0) { throw "构建或启动失败，去服务器看日志" }
 
+# 重建服务后容器的 IP 会变，而 nginx 在启动时就解析并缓存了 upstream 地址，
+# 不重启它会一直把请求转发到旧 IP（表现为 502，但 api 自己健康）。
+Step "重启 nginx（刷新 upstream 地址）"
+& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "cd $RemoteDir/ops/compose && $compose restart nginx"
+Start-Sleep -Seconds 4
+
 Step "健康检查"
 & ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "curl -fsS -o /dev/null -w '首页 %{http_code}\n' http://127.0.0.1/ && curl -fsS http://127.0.0.1/api/v1/health"
 if ($LASTEXITCODE -ne 0) {

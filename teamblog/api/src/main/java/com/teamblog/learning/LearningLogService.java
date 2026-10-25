@@ -13,6 +13,7 @@ import com.teamblog.user.Role;
 import com.teamblog.user.User;
 import com.teamblog.user.UserRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -117,6 +118,21 @@ public class LearningLogService {
 
         return learningLogRepository.findByUserIdOrderByLogDateDescCreatedAtDesc(userId).stream()
                 .map(log -> LearningLogResponse.from(log, username))
+                .toList();
+    }
+
+    /**
+     * 全站最新笔记。
+     *
+     * <p>首页只展示一小段，所以直接按 limit 取，不做游标分页——
+     * 真正要翻全部的时候应该走 /learning 列表页，那里才需要分页。
+     */
+    @Transactional(readOnly = true)
+    public List<LearningLogResponse> listLatest(int limit) {
+        int capped = Math.max(1, Math.min(limit, 20));
+        return learningLogRepository
+                .findAllByOrderByLogDateDescCreatedAtDesc(PageRequest.of(0, capped)).stream()
+                .map(log -> LearningLogResponse.from(log, usernameOf(log.getUserId())))
                 .toList();
     }
 
