@@ -48,7 +48,7 @@ export default async function HomePage() {
           <Badge variant="secondary">名称待定</Badge>
         </div>
 
-        <h1 className="max-w-3xl text-4xl leading-[1.15] font-semibold sm:text-5xl">
+        <h1 className="max-w-3xl text-4xl leading-tight font-semibold sm:text-5xl">
           团队技术博客
           <span className="block text-muted-foreground">
             记录每一次把问题想清楚的<span className="text-brand">过程</span>。

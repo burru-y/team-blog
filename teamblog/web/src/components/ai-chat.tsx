@@ -95,7 +95,7 @@ export function AiChat({ projectId }: { projectId: string }) {
 
   return (
     <div className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-2xl p-3 sm:p-4">
-      <div className="flex max-h-[70vh] flex-col rounded-xl border bg-background shadow-lg">
+      <div className="flex max-h-(--drawer-max-height) flex-col rounded-xl border bg-background shadow-lg">
         <div className="flex items-center justify-between border-b px-4 py-3">
           <div>
             <p className="text-sm font-medium">问问 AI</p>
@@ -108,7 +108,7 @@ export function AiChat({ projectId }: { projectId: string }) {
           </Button>
         </div>
 
-        <div ref={scrollRef} className="min-h-[120px] flex-1 space-y-4 overflow-y-auto px-4 py-3">
+        <div ref={scrollRef} className="min-h-30 flex-1 space-y-4 overflow-y-auto px-4 py-3">
           {turns.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               可以问：这个项目解决了什么问题？用了哪些技术？怎么部署的？

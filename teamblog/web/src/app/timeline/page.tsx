@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { MilestonesTimeline } from "@/components/milestones-timeline";
 import { MILESTONES, STATUS_LABEL } from "@/lib/timeline";
 
 /**
@@ -25,12 +26,14 @@ export default function TimelinePage() {
         </p>
       </header>
 
+      <MilestonesTimeline />
+
       <ol className="relative space-y-6 border-l pl-6">
         {MILESTONES.map((item) => (
           <li key={item.date + item.title} className="relative">
             <span
               className={[
-                "absolute -left-[31px] top-1.5 size-3 rounded-full border-2 border-background",
+                "absolute -left-8 top-1.5 size-3 rounded-full border-2 border-background",
                 item.status === "done"
                   ? "bg-emerald-500"
                   : item.status === "doing"

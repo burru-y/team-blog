@@ -7,6 +7,11 @@ RUN corepack enable && corepack prepare pnpm@10.34.5 --activate
 
 # 同样先拷 lockfile，让依赖层可缓存
 COPY package.json pnpm-lock.yaml ./
+
+# 构建时走国内镜像源：直连 registry.npmjs.org 在容器里经常 ECONNRESET，
+# 而依赖层一旦失败整次构建就中断。只影响镜像构建，不改开发机的 .npmrc。
+RUN pnpm config set registry https://registry.npmmirror.com
+
 RUN pnpm install --frozen-lockfile
 
 COPY . .

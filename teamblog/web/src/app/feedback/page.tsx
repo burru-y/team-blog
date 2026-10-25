@@ -107,7 +107,7 @@ export default function FeedbackPage() {
             </div>
 
             {/* 蜜罐：正常用户看不到也 Tab 不到，机器人会填 */}
-            <div aria-hidden="true" className="absolute -left-[9999px] top-auto h-px w-px overflow-hidden">
+            <div aria-hidden="true" className="absolute -left-full top-auto h-px w-px overflow-hidden">
               <label htmlFor="website">网站</label>
               <input
                 id="website"
