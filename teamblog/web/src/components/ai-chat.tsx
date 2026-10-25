@@ -1,31 +1,31 @@
 "use client";
 
+import { ArrowUp, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { streamProjectChat } from "@/lib/ai";
 import { useSession } from "@/lib/session";
 
 type Turn = { question: string; answer: string; error?: string };
 
 /**
- * 项目问答抽屉（批次 7.4）。
+ * 项目 AI 问答。
  *
- * 三个必须做对的地方：
- * 1. **关闭时中止**：`AbortController.abort()` → 服务端 `is_disconnected()` 为真 → 停止调用模型。
- *    不做这一步，用户关掉抽屉后 token 还在烧。
- * 2. **流式渲染**：每收到一个 delta 就 setState，用户看到的是逐字出现。
- * 3. **降级文案**：429 / 503 / 502 / 断网 各自不同——用户该做的动作不一样。
+ * 交互按"聊天面板"来做：入口是一张显眼的卡片，点开后在右下角升起面板，
+ * 用户消息靠右、回答靠左，输入框固定在底部。
+ *
+ * 三个状态都要有明确反馈，否则用户会以为卡住了：
+ *   1. 已发送、等首字  → 三点动画 + 已用秒数
+ *   2. 正在输出        → 文本后跟闪烁光标
+ *   3. 出错            → 气泡内的错误文案，按 429/503/断网分别给不同建议
  */
 export function AiChat({ projectId }: { projectId: string }) {
-  // 没有 token 也能用（访客档）；登录后自动带 token 升到成员档
   const { token } = useSession();
   const [open, setOpen] = useState(false);
   const [question, setQuestion] = useState("");
   const [turns, setTurns] = useState<Turn[]>([]);
   const [busy, setBusy] = useState(false);
-  // 等待首字时显示已用时间：用户看到数字在动，就不会以为卡死
   const [elapsed, setElapsed] = useState(0);
   const controllerRef = useRef<AbortController | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
@@ -36,9 +36,10 @@ export function AiChat({ projectId }: { projectId: string }) {
   }, []);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-  }, [turns]);
+    scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" });
+  }, [turns, busy]);
 
+  // 等首字期间计时：用户看到数字在动，就不会以为卡死
   useEffect(() => {
     if (!busy) {
       setElapsed(0);
@@ -58,8 +59,8 @@ export function AiChat({ projectId }: { projectId: string }) {
     setOpen(false);
   }
 
-  async function ask() {
-    const text = question.trim();
+  async function ask(preset?: string) {
+    const text = (preset ?? question).trim();
     if (!text || busy) {
       return;
     }
@@ -101,83 +102,131 @@ export function AiChat({ projectId }: { projectId: string }) {
 
   if (!open) {
     return (
-      <Button variant="outline" onClick={() => setOpen(true)}>
-        问问 AI
-      </Button>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="card-lift group flex w-full items-center gap-4 rounded-xl border bg-gradient-to-br from-brand/10 via-transparent to-transparent px-5 py-4 text-left hover:card-lift-hover"
+      >
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-brand text-brand-foreground">
+          <Sparkles className="size-5" aria-hidden />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block font-medium">就这个项目问 AI</span>
+          <span className="block text-xs text-muted-foreground">
+            回答只依据项目资料，不编造；{token ? "成员不限次数" : "访客每天 8 次"}
+          </span>
+        </span>
+        <span className="shrink-0 text-sm text-brand">开始对话 →</span>
+      </button>
     );
   }
 
   return (
-    <div className="fixed inset-x-0 bottom-0 z-50 mx-auto w-full max-w-2xl p-3 sm:p-4">
-      <div className="flex max-h-(--drawer-max-height) flex-col rounded-xl border bg-background shadow-lg">
-        <div className="flex items-center justify-between border-b px-4 py-3">
-          <div>
-            <p className="text-sm font-medium">问问 AI</p>
-            <p className="text-xs text-muted-foreground">
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-stretch sm:justify-end sm:bg-transparent sm:p-6">
+      <div className="flex h-[85vh] w-full flex-col overflow-hidden rounded-t-2xl border bg-background shadow-xl sm:h-auto sm:max-h-[80vh] sm:w-[420px] sm:rounded-2xl">
+        {/* 头部：标题 + 档位说明 + 关闭 */}
+        <div className="flex items-start justify-between gap-3 border-b px-4 py-3">
+          <div className="min-w-0">
+            <p className="flex items-center gap-1.5 text-sm font-medium">
+              <Sparkles className="size-3.5 text-brand" aria-hidden />
+              项目问答
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
               {token ? "已登录：不限次数，可问通用问题" : "访客模式：每天 8 次，仅限本项目内容"}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={close}>
-            关闭
+          <Button variant="ghost" size="sm" onClick={close} aria-label="关闭">
+            <X className="size-4" aria-hidden />
           </Button>
         </div>
 
-        <div ref={scrollRef} className="min-h-30 flex-1 space-y-4 overflow-y-auto px-4 py-3">
+        {/* 消息区 */}
+        <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
           {turns.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              可以问：这个项目解决了什么问题？用了哪些技术？怎么部署的？
-            </p>
-          ) : (
-            turns.map((turn, index) => (
-              <div key={index} className="space-y-2">
-                <p className="text-sm font-medium">问：{turn.question}</p>
-                {turn.answer ? (
-                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
-                    {turn.answer}
-                    {busy && index === turns.length - 1 ? (
-                      <span
-                        aria-hidden
-                        className="animate-caret ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-foreground"
-                      />
-                    ) : null}
-                  </p>
-                ) : busy && index === turns.length - 1 ? (
-                  <ThinkingRow elapsed={elapsed} />
-                ) : null}
-                {turn.error ? <p className="text-sm text-destructive">{turn.error}</p> : null}
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">问点什么？回答只依据这个项目的资料。</p>
+              <div className="flex flex-wrap gap-2">
+                {["这个项目解决了什么问题？", "用了哪些技术？", "怎么部署的？"].map((item) => (
+                  <button
+                    key={item}
+                    type="button"
+                    onClick={() => void ask(item)}
+                    className="rounded-full border px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-foreground/30 hover:text-foreground"
+                  >
+                    {item}
+                  </button>
+                ))}
               </div>
-            ))
+            </div>
+          ) : (
+            turns.map((turn, index) => {
+              const isLast = index === turns.length - 1;
+              const streaming = busy && isLast && Boolean(turn.answer);
+              return (
+                <div key={index} className="space-y-2">
+                  {/* 用户消息靠右 */}
+                  <div className="flex justify-end">
+                    <p className="max-w-[85%] rounded-2xl rounded-br-sm bg-brand px-3.5 py-2 text-sm text-brand-foreground">
+                      {turn.question}
+                    </p>
+                  </div>
+
+                  {/* 回答靠左 */}
+                  <div className="flex justify-start">
+                    <div className="max-w-[92%] space-y-1.5 rounded-2xl rounded-bl-sm border bg-muted/40 px-3.5 py-2.5">
+                      {turn.answer ? (
+                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
+                          {turn.answer}
+                          {streaming ? (
+                            <span
+                              aria-hidden
+                              className="animate-caret ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-foreground"
+                            />
+                          ) : null}
+                        </p>
+                      ) : busy && isLast ? (
+                        <ThinkingRow elapsed={elapsed} />
+                      ) : null}
+                      {turn.error ? <p className="text-sm text-destructive">{turn.error}</p> : null}
+                    </div>
+                  </div>
+                </div>
+              );
+            })
           )}
         </div>
 
-        <div className="space-y-2 border-t px-4 py-3">
-          <Textarea
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === "Enter" && !event.shiftKey) {
-                event.preventDefault();
-                void ask();
-              }
-            }}
-            rows={2}
-            maxLength={500}
-            placeholder="输入问题，Enter 发送，Shift+Enter 换行"
-            disabled={busy}
-          />
-          <div className="flex items-center gap-2">
-            <Button onClick={() => void ask()} disabled={busy || !question.trim()}>
-              {busy ? "回答中…" : "发送"}
+        {/* 输入区 */}
+        <div className="border-t p-3">
+          <div className="flex items-end gap-2 rounded-2xl border bg-background px-3 py-2 focus-within:border-foreground/30">
+            <textarea
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && !event.shiftKey) {
+                  event.preventDefault();
+                  void ask();
+                }
+              }}
+              rows={1}
+              maxLength={500}
+              placeholder="问点什么…（Enter 发送，Shift+Enter 换行）"
+              disabled={busy}
+              className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            />
+            <Button
+              size="sm"
+              onClick={() => void ask()}
+              disabled={busy || !question.trim()}
+              aria-label="发送"
+              className="size-8 shrink-0 rounded-full p-0"
+            >
+              <ArrowUp className="size-4" aria-hidden />
             </Button>
-            {busy ? (
-              <Button variant="ghost" size="sm" onClick={close}>
-                停止
-              </Button>
-            ) : null}
-            <span className="text-xs text-muted-foreground">
-              {token ? "成员不限次数" : "访客每天 8 次"}
-            </span>
           </div>
+          <p className="mt-1.5 text-center text-xs text-muted-foreground">
+            {token ? "成员不限次数" : "访客每天 8 次"} · 回答由 AI 生成，请核对关键信息
+          </p>
         </div>
       </div>
     </div>
@@ -187,7 +236,6 @@ export function AiChat({ projectId }: { projectId: string }) {
 /**
  * 等待首字的思考态。
  *
- * 这一段是空的：SSE 连上了但模型还没吐字，可能是 1 秒也可能是 9 秒。
  * 只放三个点在动不够，用户不知道等了多久；带上秒数就能自己判断要不要继续等。
  */
 function ThinkingRow({ elapsed }: { elapsed: number }) {

@@ -68,13 +68,12 @@ export default async function ProjectDetailPage({ params }: { params: Promise<{ 
         </a>
       ) : null}
 
+      {/* AI 入口放在正文之后、评论之前：这是访客最可能想试的功能 */}
+      <AiChat projectId={project.id} />
+
       {project.contentMd ? <Markdown>{project.contentMd}</Markdown> : null}
 
       <Comments targetType="PROJECT" targetId={project.id} initial={comments} />
-
-      <div>
-        <AiChat projectId={project.id} />
-      </div>
 
       <div className="flex items-center gap-3">
         <Link href="/projects" className={buttonVariants({ variant: "ghost" })}>
