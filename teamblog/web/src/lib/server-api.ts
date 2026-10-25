@@ -1,5 +1,6 @@
 import { pageQuery, request } from "./api";
 import type {
+  Announcement,
   HelpFile,
   CommentResponse,
   HeatmapResponse,
@@ -29,6 +30,12 @@ export const serverApi = {
 
   getLearningLog(id: string): Promise<LearningLogResponse> {
     return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  /** 公告列表（公告页）。 */
+  listAnnouncements(kind?: "CHANGELOG"): Promise<Announcement[]> {
+    const query = kind ? `?kind=${kind}` : "";
+    return request<Announcement[]>(`/api/v1/announcements${query}`, { base: ORIGIN });
   },
 
   /** 帮助资料列表（帮助页下载区）。 */

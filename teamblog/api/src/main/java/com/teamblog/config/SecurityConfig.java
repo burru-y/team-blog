@@ -73,6 +73,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/v1/stats/heatmap").permitAll()
                         // 上传的文件：由静态资源处理器/Nginx 提供，访客可见
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
+                        // 公告：访客进站就要看到，公开读
+                        .requestMatchers(HttpMethod.GET, "/api/v1/announcements").permitAll()
                         // 帮助资料列表：帮助页给所有访客看
                         .requestMatchers(HttpMethod.GET, "/api/v1/help/files").permitAll()
                         // 学习内容：公开阅读；发布/编辑需要登录

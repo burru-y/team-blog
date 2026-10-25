@@ -14,6 +14,7 @@ import { useSession } from "@/lib/session";
 import { PageHeader } from "@/components/page-header";
 import type {
   AdminFeedback,
+  Announcement,
   AdminProject,
   InviteCreated,
   HelpFile,
@@ -21,7 +22,7 @@ import type {
   UserResponse,
 } from "@/lib/types";
 
-type Tab = "members" | "invites" | "content" | "feedback" | "help";
+type Tab = "members" | "invites" | "content" | "feedback" | "help" | "announcements";
 
 /** 邀请状态的中文标签。与后端 AdminInvite.Status 一一对应。 */
 const STATUS_LABEL: Record<string, string> = {
@@ -37,6 +38,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "content", label: "内容" },
   { key: "feedback", label: "留言" },
   { key: "help", label: "帮助资料" },
+  { key: "announcements", label: "公告" },
 ];
 
 /**
@@ -91,6 +93,7 @@ export default function AdminPage() {
       {tab === "content" ? <ContentTab token={token} onError={setError} /> : null}
       {tab === "feedback" ? <FeedbackTab token={token} onError={setError} /> : null}
         {tab === "help" ? <HelpTab token={token} onError={setError} /> : null}
+        {tab === "announcements" ? <AnnouncementsTab token={token} onError={setError} /> : null}
     </div>
   );
 }
@@ -572,5 +575,185 @@ function HelpTab({ token, onError }: { token: string; onError: (message: string)
         )}
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * 公告与更新日志：发布后出现在 /announcements，并在访客进站时弹一次提示。
+ *
+ * 更新日志必须填版本号（后端也会校验）：版本号是时间线的锚点，
+ * 缺了它就只能算普通公告。
+ */
+function AnnouncementsTab({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const [items, setItems] = useState<Announcement[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+
+  const [kind, setKind] = useState<"NOTICE" | "CHANGELOG">("CHANGELOG");
+  const [version, setVersion] = useState("v1.1");
+  const [title, setTitle] = useState("");
+  const [bodyMd, setBodyMd] = useState("");
+  const [pinned, setPinned] = useState(false);
+
+  const reload = useCallback(async () => {
+    try {
+      setItems(await api.listAnnouncements());
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "读取公告失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function publish() {
+    if (!title.trim() || !bodyMd.trim()) {
+      onError("标题和正文都不能为空");
+      return;
+    }
+    if (kind === "CHANGELOG" && !version.trim()) {
+      onError("更新日志必须填版本号");
+      return;
+    }
+    setBusy(true);
+    try {
+      await api.createAnnouncement(
+        {
+          kind,
+          version: kind === "CHANGELOG" ? version.trim() : null,
+          title: title.trim(),
+          bodyMd: bodyMd.trim(),
+          pinned,
+        },
+        token,
+      );
+      setTitle("");
+      setBodyMd("");
+      setPinned(false);
+      await reload();
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "发布失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(id: string) {
+    setBusy(true);
+    try {
+      await api.deleteAnnouncement(id, token);
+      await reload();
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "删除失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="space-y-4">
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">发布公告</CardTitle>
+          <CardDescription>
+            正文支持 Markdown。更新日志建议按「新增 / 改进 / 修复」分节写，时间线会直接渲染。
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {(["CHANGELOG", "NOTICE"] as const).map((value) => (
+              <Button
+                key={value}
+                size="sm"
+                variant={kind === value ? "default" : "outline"}
+                onClick={() => setKind(value)}
+              >
+                {value === "CHANGELOG" ? "更新日志" : "普通公告"}
+              </Button>
+            ))}
+            {kind === "CHANGELOG" ? (
+              <Input
+                value={version}
+                onChange={(event) => setVersion(event.target.value)}
+                placeholder="版本号，如 v1.1"
+                className="w-40"
+              />
+            ) : null}
+          </div>
+
+          <Input
+            value={title}
+            onChange={(event) => setTitle(event.target.value)}
+            placeholder="标题，如「v1.1 测试版」"
+            maxLength={200}
+          />
+
+          <textarea
+            value={bodyMd}
+            onChange={(event) => setBodyMd(event.target.value)}
+            rows={8}
+            placeholder={"### 新增\n- 公告与更新日志\n\n### 改进\n- 图片改存 OSS"}
+            className="w-full resize-y rounded-lg border bg-background p-3 font-mono text-sm outline-none focus-visible:border-foreground/30"
+          />
+
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4 accent-foreground"
+              checked={pinned}
+              onChange={(event) => setPinned(event.target.checked)}
+            />
+            置顶（进站提示优先展示它）
+          </label>
+
+          <div className="flex justify-end">
+            <Button onClick={() => void publish()} disabled={busy}>
+              {busy ? "发布中…" : "发布"}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">已发布的公告</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? (
+            <p className="text-sm text-muted-foreground">正在读取…</p>
+          ) : items.length === 0 ? (
+            <p className="text-sm text-muted-foreground">还没有发布过。</p>
+          ) : (
+            <ul className="divide-y rounded-lg border">
+              {items.map((item) => (
+                <li key={item.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-2">
+                      {item.version ? (
+                        <span className="rounded border px-1.5 py-0.5 font-mono text-xs">
+                          {item.version}
+                        </span>
+                      ) : null}
+                      <span className="truncate text-sm font-medium">{item.title}</span>
+                      {item.pinned ? <Badge variant="secondary" className="text-xs">置顶</Badge> : null}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {item.kind === "CHANGELOG" ? "更新日志" : "公告"} ·{" "}
+                      {new Date(item.publishedAt).toLocaleDateString("zh-CN")}
+                    </p>
+                  </div>
+                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove(item.id)}>
+                    删除
+                  </Button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 }

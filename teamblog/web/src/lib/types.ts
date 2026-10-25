@@ -148,3 +148,14 @@ export type HelpFile = {
   size: number;
   updatedAt: string;
 };
+
+/** 公告 / 更新日志。 */
+export type Announcement = {
+  id: string;
+  kind: "NOTICE" | "CHANGELOG";
+  version: string | null;
+  title: string;
+  bodyMd: string;
+  pinned: boolean;
+  publishedAt: string;
+};

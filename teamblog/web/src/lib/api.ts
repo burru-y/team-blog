@@ -1,5 +1,6 @@
 import type {
   AdminFeedback,
+  Announcement,
   HelpFile,
   AdminProject,
   CheckinResult,
@@ -150,6 +151,32 @@ export const api = {
   },
 
   /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
+  /** 公告列表（公开）。kind 传 CHANGELOG 只取更新日志。 */
+  listAnnouncements(kind?: "CHANGELOG"): Promise<Announcement[]> {
+    const query = kind ? `?kind=${kind}` : "";
+    return request<Announcement[]>(`/api/v1/announcements${query}`);
+  },
+
+  /** 管理员发布公告。 */
+  createAnnouncement(
+    body: { kind: string; version?: string | null; title: string; bodyMd: string; pinned?: boolean },
+    token: string,
+  ): Promise<Announcement> {
+    return request<Announcement>("/api/v1/admin/announcements", {
+      method: "POST",
+      token,
+      body: JSON.stringify(body),
+    });
+  },
+
+  /** 管理员删除公告。 */
+  deleteAnnouncement(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/admin/announcements/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+
   /** 帮助资料列表（公开）。 */
   listHelpFiles(): Promise<HelpFile[]> {
     return request<HelpFile[]>("/api/v1/help/files");
