@@ -11,7 +11,7 @@ set -euo pipefail
 
 OSS_BUCKET="${OSS_BUCKET:?需要设置 OSS_BUCKET，例如 yuxiao-backup}"
 OSS_PREFIX="${OSS_PREFIX:-db}"
-LOCAL_DIR="${LOCAL_DIR:-/var/lib/docker/volumes/yuxiao_backups/_data}"
+LOCAL_DIR="${LOCAL_DIR:-/var/lib/docker/volumes/yuxiao_backups/_data/db}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 
 if [[ ! -d "$LOCAL_DIR" ]]; then
@@ -25,7 +25,7 @@ if ! command -v ossutil >/dev/null 2>&1; then
 fi
 
 echo "== 上传最新的 dump =="
-# 只传变化过的文件：ossutil 的 -u 按修改时间判断，没变的不重传
+# LOCAL_DIR 指向存放 dump 的那层目录，不要指向它的父目录——否则会把 db/ 这层也传上去。`n# 只传变化过的文件：ossutil 的 -u 按修改时间判断，没变的不重传
 ossutil cp -r -u "$LOCAL_DIR/" "oss://${OSS_BUCKET}/${OSS_PREFIX}/" --include "*.dump"
 
 echo
