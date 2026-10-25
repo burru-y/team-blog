@@ -34,7 +34,7 @@ import {
   AnimatedSidebarRail,
   AnimatedSidebarTrigger,
 } from "@/components/motion/animated-sidebar";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/session";
 
@@ -255,11 +255,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 href={`/u/${user.username}`}
                 className="flex min-w-0 flex-1 items-center gap-2 rounded-xl p-1 transition-colors hover:bg-muted"
               >
-                <Avatar className="size-8 shrink-0">
-                  <AvatarFallback>
-                    {(user.displayName ?? user.username).slice(0, 2).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  name={user.displayName ?? user.username}
+                  avatarUrl={user.avatarUrl}
+                  className="size-8"
+                />
                 <span className="min-w-0 flex-1 group-data-[state=collapsed]/sidebar:hidden">
                   <span className="block truncate text-sm font-medium">
                     {user.displayName ?? user.username}

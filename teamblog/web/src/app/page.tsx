@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import {
@@ -124,9 +124,7 @@ export default async function HomePage() {
                 <TiltCard key={member.id} className="border bg-card">
                   <Link href={`/u/${member.username}`} className="block p-5">
                     <div className="flex items-center gap-3">
-                      <Avatar className="size-11">
-                        <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
+                      <UserAvatar name={name} avatarUrl={member.avatarUrl} className="size-11" />
                       <div className="min-w-0 flex-1">
                         <p className="truncate font-medium">{name}</p>
                         <p className="truncate text-xs text-muted-foreground">

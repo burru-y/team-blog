@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { UploadQueue } from "@/components/upload-queue";
+import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -139,13 +141,39 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="avatar">头像地址</Label>
-              <Input
-                id="avatar"
-                value={avatarUrl}
-                placeholder="https://example.com/avatar.png"
-                onChange={(event) => setAvatarUrl(event.target.value)}
-              />
+              <Label>头像</Label>
+              <div className="flex items-center gap-4">
+                <UserAvatar
+                  name={displayName || profile.username}
+                  avatarUrl={avatarUrl || null}
+                  className="size-16 text-base"
+                />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <UploadQueue
+                    kind="image"
+                    accept="image/png,image/jpeg,image/gif,image/webp"
+                    title="拖入或点选一张图片当头像"
+                    description="PNG / JPEG / GIF / WebP，5MB 内"
+                    variant="default"
+                    onUploaded={({ data }) => {
+                      const image = data as { url: string };
+                      setAvatarUrl(image.url);
+                    }}
+                  />
+                  {avatarUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => setAvatarUrl("")}
+                      className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+                    >
+                      移除头像
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                上传后需要点「保存」才生效。
+              </p>
             </div>
 
             <label className="flex cursor-pointer items-center justify-between rounded-lg border p-3">

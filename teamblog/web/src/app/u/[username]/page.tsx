@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ActivityCard } from "@/components/activity-card";
+import { UserAvatar } from "@/components/user-avatar";
 import { TiltCard } from "@/components/motion/tilt-card";
 import { toContributions } from "@/lib/contributions";
 import { ProfileEditor } from "@/components/profile-editor";
@@ -48,11 +48,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     <div className="space-y-10">
       <section className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
-          <Avatar className="size-16">
-            <AvatarFallback className="text-lg">
-              {profile.displayName.slice(0, 2).toUpperCase()}
-            </AvatarFallback>
-          </Avatar>
+          <UserAvatar
+            name={profile.displayName ?? profile.username}
+            avatarUrl={profile.avatarUrl}
+            className="size-16 text-lg"
+          />
 
           <div className="space-y-1">
             <div className="flex items-center gap-2">
