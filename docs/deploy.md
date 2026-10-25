@@ -71,6 +71,51 @@ sudo ufw allow 8088/tcp
 
 买的时候**只开 SSH 密钥登录**，不要用密码登录。
 
+### 路线 A 速查（学生机，IP + 8088）
+
+买好机器后，从登录到能访问，一共六步：
+
+```bash
+# 1. 装 Docker
+curl -fsSL https://get.docker.com | sh
+sudo usermod -aG docker $USER && newgrp docker
+
+# 2. 时区（打卡按天算，必须对）
+sudo timedatectl set-timezone Asia/Shanghai
+
+# 3. 防火墙：只开 SSH 与对外端口
+sudo ufw allow OpenSSH && sudo ufw allow 8088/tcp && sudo ufw enable
+
+# 4. 拉代码
+sudo apt install -y git && git clone https://github.com/burru-y/team-blog.git
+cd team-blog/teamblog/ops/compose
+
+# 5. 生成配置
+cp .env.prod.example .env.prod && chmod 600 .env.prod
+openssl rand -base64 24   # 填进 POSTGRES_PASSWORD
+openssl rand -base64 48   # 填进 JWT_SECRET
+openssl rand -base64 32   # 填进 INTERNAL_HMAC_SECRET
+nano .env.prod            # 另设 ADMIN_BOOTSTRAP_PASSWORD、AI_API_KEY
+
+# 6. 启动
+docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+```
+
+启动后访问 `http://<公网IP>:8088`。
+
+**还要在阿里云控制台的「安全组」里放行 8088**——`ufw` 只管机器内部，云平台的防火墙是另一层，漏了这一步会一直超时。
+
+### 路线 A 的费用控制
+
+按量付费实例**关机后云盘仍在计费**（约 ¥0.3/天），两个办法：
+
+| 做法 | 效果 | 操作 |
+|---|---|---|
+| 开「节省停机模式」 | 关机时不收 CPU/内存费，只收云盘与公网 IP | 控制台 → 实例 → 更多 → 实例属性 → 停机不收费 |
+| 设自动释放 | 到期自动销毁，不怕忘 | 控制台 → 实例 → 更多 → 实例属性 → 自动释放时间 |
+
+内测阶段建议：**设一个 3 天后的自动释放时间**，用完续期；忘了也不至于一直扣钱。
+
 ---
 
 ## 2. 初始化服务器
