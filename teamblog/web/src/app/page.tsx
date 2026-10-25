@@ -95,7 +95,7 @@ export default async function HomePage() {
           </CardContent>
           </Card>
         </TiltCard>
-        <TiltCard className="flex [&>*]:w-full" max={4} glare={false}>
+        <TiltCard className="h-full" max={4} glare={false}>
           <CheckinCard />
         </TiltCard>
       </section>

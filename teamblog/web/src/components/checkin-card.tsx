@@ -121,7 +121,7 @@ export function CheckinCard() {
   const nothingToDo = checkedIn && !content.trim();
 
   return (
-    <Card className="flex h-full flex-col">
+    <Card className="flex h-full w-full flex-col">
       <CardHeader className="flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle className="text-base">今日打卡</CardTitle>
