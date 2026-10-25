@@ -95,7 +95,7 @@ export default async function HomePage() {
           </CardContent>
           </Card>
         </TiltCard>
-        <TiltCard className="flex border bg-card" max={4} glare={false}>
+        <TiltCard className="flex [&>*]:w-full" max={4} glare={false}>
           <CheckinCard />
         </TiltCard>
       </section>
@@ -113,7 +113,7 @@ export default async function HomePage() {
             {page.items.map((member) => {
               const name = member.displayName ?? member.username;
               return (
-                <TiltCard key={member.id} className="border bg-card" glare={false}>
+                <TiltCard key={member.id} className="border bg-card">
                   <Link href={`/u/${member.username}`} className="block p-5">
                     <div className="flex items-center gap-3">
                       <Avatar className="size-11">

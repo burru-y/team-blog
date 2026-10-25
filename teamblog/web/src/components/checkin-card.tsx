@@ -121,42 +121,49 @@ export function CheckinCard() {
   const nothingToDo = checkedIn && !content.trim();
 
   return (
-    <Card>
-      <CardHeader className="flex-row items-center justify-between space-y-0">
-        <CardTitle className="text-base">今日打卡</CardTitle>
+    <Card className="flex h-full flex-col">
+      <CardHeader className="flex-row items-start justify-between space-y-0">
+        <div>
+          <CardTitle className="text-base">今日打卡</CardTitle>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {status ? `连续 ${status.streak} 天` : "正在读取状态…"}
+          </p>
+        </div>
         {status ? (
-          <span className="text-xs text-muted-foreground">
-            连续 {status.streak} 天 · Lv{status.level}
+          <span className="rounded-full border px-2 py-0.5 text-xs tabular-nums text-muted-foreground">
+            Lv{status.level}
           </span>
         ) : null}
       </CardHeader>
 
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="text-sm text-muted-foreground">
-            {status ? (
-              <>
-                当前 <span className="font-medium text-foreground">{status.totalPoints}</span> 分
-                {flash ? <span className="ml-2 text-emerald-600">{flash}</span> : null}
-              </>
-            ) : (
-              "正在读取打卡状态…"
-            )}
-          </div>
+      <CardContent className="flex flex-1 flex-col gap-4">
+        {/* 积分是这个卡片的主角，字号给足 */}
+        <div>
+          <p className="text-3xl font-semibold tabular-nums">
+            {status ? status.totalPoints : "—"}
+            <span className="ml-1 text-sm font-normal text-muted-foreground">分</span>
+          </p>
+          {flash ? (
+            <p className="mt-1 text-xs text-emerald-600 dark:text-emerald-400">{flash}</p>
+          ) : (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {checkedIn ? "今天已打卡" : "每天打卡 +1 分，连续 7 天起有额外奖励"}
+            </p>
+          )}
+        </div>
 
-          <div className="flex items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              onClick={() => setNoteOpen((open) => !open)}
-            >
-              {noteOpen ? "收起" : "顺便记一笔"}
-            </Button>
-            <Button onClick={handleCheckin} disabled={busy || nothingToDo}>
-              {busy ? "提交中…" : checkedIn ? (content.trim() ? "提交学习内容" : "今天已打卡") : "打卡"}
-            </Button>
-          </div>
+        <div className="mt-auto space-y-2">
+          <Button className="w-full" onClick={handleCheckin} disabled={busy || nothingToDo}>
+            {busy ? "提交中…" : checkedIn ? (content.trim() ? "提交学习内容" : "今天已打卡") : "打卡"}
+          </Button>
+
+          <button
+            type="button"
+            onClick={() => setNoteOpen((open) => !open)}
+            className="w-full rounded-md py-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            {noteOpen ? "收起" : "顺便记一笔学习内容"}
+          </button>
         </div>
 
         {noteOpen ? (
@@ -180,9 +187,9 @@ export function CheckinCard() {
               </Label>
               <Textarea
                 id="checkin-note-content"
-                rows={4}
+                rows={3}
                 value={content}
-                placeholder={"例如：今天弄明白了 JWT 的 tv 字段为什么能撤销令牌……"}
+                placeholder="例如：今天弄明白了 JWT 的 tv 字段为什么能撤销令牌……"
                 onChange={(event) => setContent(event.target.value)}
               />
             </div>
