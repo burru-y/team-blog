@@ -112,11 +112,11 @@ export function UploadQueue({
       maxFiles={1}
       title={title}
       description={description}
-      onFilesAdded={(next, files) => {
-        // 新加的文件带上 File 对象，组件自己建 items 时不会带
-        const withFile = next.map((item, index) => ({ ...item, file: files[index] ?? item.file }));
-        setItems(withFile);
-        void runQueue(withFile);
+      onFilesAdded={(added) => {
+        // 组件回调给的是“这次新增的条目”，里面已经带了 File 对象。
+        // 单文件模式下用它替换整个队列，避免旧文件残留。
+        setItems(added);
+        void runQueue(added);
       }}
       onRetry={(item) => void uploadOne(item)}
       onRemove={() => setItems([])}
