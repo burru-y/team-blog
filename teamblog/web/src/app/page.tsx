@@ -79,16 +79,18 @@ export default async function HomePage() {
         </dl>
       </section>
 
-      <section className="grid items-start gap-4 lg:grid-cols-3">
+      <section className="grid gap-4 lg:grid-cols-3">
         <TiltCard className="lg:col-span-2 border bg-card" max={4} glare={false}>
-          <Card className="border-0 bg-transparent">
+          <Card className="flex h-full flex-col bg-transparent ring-0">
           <CardHeader>
             <CardTitle className="text-base">团队打卡</CardTitle>
             <CardDescription>最近 17 周，颜色越深当天打卡的人越多</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-1 items-center">
             {heatmap ? (
-              <Heatmap data={heatmap} emptyLabel="无人打卡" />
+              <div className="w-full">
+                <Heatmap data={heatmap} emptyLabel="无人打卡" />
+              </div>
             ) : (
               <p className="text-sm text-muted-foreground">热力图暂时取不到数据。</p>
             )}
