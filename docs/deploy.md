@@ -71,6 +71,57 @@ sudo ufw allow 8088/tcp
 
 买的时候**只开 SSH 密钥登录**，不要用密码登录。
 
+### 关于 ¥99/年那款（2核2G、3M 带宽）
+
+这一款是 **ECS 经济型 e 实例，包年包月**，和"学生算力包"（按量付费）不是同一类：
+
+| | ¥99/年 经济型 e | 学生算力包 |
+|---|---|---|
+| 计费 | **包年包月** | 按量付费 |
+| 能否 ICP 备案 | **能** | **不能** |
+| 续费 | 同价续费（可到 2030） | 到期需重新买 |
+| 适合 | 长期挂着 | 短期练手 |
+
+所以直接买这款更划算，而且以后想绑域名时**备案这条路是通的**。
+
+它给的配置是 2 核 2G / **3M 独享带宽** / 40G ESSD。两个地方要提前处理：
+
+**① 内存紧，构建前先加 swap**
+
+六个容器跑起来约占 1.2–1.5 GB，而 `docker build` 时的 Node 与 Maven 编译峰值可能到 1 GB 以上，2G 内存很容易被 OOM 杀掉构建进程。先加 2G swap：
+
+```bash
+sudo fallocate -l 2G /swapfile
+sudo chmod 600 /swapfile
+sudo mkswap /swapfile
+sudo swapon /swapfile
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+free -h
+```
+
+**② 3M 带宽，拉镜像会慢**
+
+3 Mbps 理论峰值约 375 KB/s。首次 `docker pull` 要下几百 MB，可能二十分钟以上。配阿里云镜像加速器：
+
+```bash
+sudo mkdir -p /etc/docker
+sudo tee /etc/docker/daemon.json <<'EOF'
+{
+  "registry-mirrors": ["https://docker.m.daocloud.io"]
+}
+EOF
+sudo systemctl restart docker
+```
+
+再逐个构建，避免多个编译进程同时抢内存：
+
+```bash
+docker compose -f compose.prod.yaml --env-file .env.prod build api
+docker compose -f compose.prod.yaml --env-file .env.prod build web
+docker compose -f compose.prod.yaml --env-file .env.prod build ai
+docker compose -f compose.prod.yaml --env-file .env.prod up -d
+```
+
 ### 路线 A 速查（学生机，IP + 8088）
 
 买好机器后，从登录到能访问，一共六步：
