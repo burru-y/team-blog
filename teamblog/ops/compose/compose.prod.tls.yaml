@@ -1,0 +1,25 @@
+# HTTPS 覆盖文件（生产）
+#
+#   docker compose -f compose.prod.yaml -f compose.prod.tls.yaml --env-file .env.prod up -d
+#
+# 前置条件：
+#   1. 域名已解析到本机
+#   2. 证书已放到 ../nginx/certs/{fullchain.pem,privkey.pem}
+#   3. .env.prod 里 COOKIE_SECURE=true
+#
+# 用 IP 访问阶段不要挂这个文件——没有域名就没有证书，nginx 会启动失败。
+
+services:
+  nginx:
+    ports: !override
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ../nginx/https.conf:/etc/nginx/conf.d/default.conf:ro
+      - ../nginx/certs:/etc/nginx/certs:ro
+      - uploads:/var/www/uploads:ro
+
+volumes:
+  pgdata:
+  uploads:
+  backups:

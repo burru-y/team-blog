@@ -20,6 +20,8 @@
 .env
 .env.*
 !.env.example
+# 生产环境变量模板要进仓库，真实 .env.prod 仍然忽略
+!.env.*.example
 **/uploads/
 **/logs/
 

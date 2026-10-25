@@ -1,0 +1,143 @@
+# 生产环境 compose：单机部署，只暴露 80/443
+#
+#   docker compose -f compose.prod.yaml --env-file .env.prod up -d --build
+#
+# 与开发用的 compose.yaml 的区别：
+#   - 数据库、AI、备份都不映射端口（只在容器网络内可达）
+#   - nginx 直接映射宿主机的 80/443，不走 8088/8443
+#   - 所有服务只依赖镜像，不在服务器上跑构建缓存清理
+#
+# HTTPS：先用 80 跑通、域名解析好之后，再挂 compose.prod.tls.yaml。
+
+name: yuxiao
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-blog}
+      POSTGRES_USER: ${POSTGRES_USER:-blog}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      TZ: Asia/Shanghai
+      PGTZ: Asia/Shanghai
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-blog} -d ${POSTGRES_DB:-blog}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    expose:
+      - "5432"
+
+  api:
+    build:
+      context: ../../api
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DATABASE_URL: jdbc:postgresql://db:5432/${POSTGRES_DB:-blog}
+      DB_USER: ${POSTGRES_USER:-blog}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET 必须设置（至少 32 字节）}
+      # 先用 IP 走 HTTP 时必须为 false，否则浏览器不会保存登录 Cookie
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      UPLOAD_DIR: /app/uploads
+      # 小机器上限制堆：2GB 内存的 VPS 给 384MB 足够，留出空间给 web 与 pg
+      JAVA_TOOL_OPTIONS: "-Xms128m -Xmx384m -XX:+ExitOnOutOfMemoryError"
+      ADMIN_BOOTSTRAP_USERNAME: ${ADMIN_BOOTSTRAP_USERNAME:-admin}
+      ADMIN_BOOTSTRAP_PASSWORD: ${ADMIN_BOOTSTRAP_PASSWORD:-}
+      SUMMARIZER_URL: http://ai:8000
+      INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:?INTERNAL_HMAC_SECRET 必须设置}
+      INVITE_ALLOW_ADMIN: ${INVITE_ALLOW_ADMIN:-false}
+      TZ: Asia/Shanghai
+    volumes:
+      - uploads:/app/uploads
+    mem_limit: 640m
+    expose:
+      - "8080"
+
+  web:
+    build:
+      context: ../../web
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      API_ORIGIN: http://api:8080
+      TZ: Asia/Shanghai
+    mem_limit: 512m
+    expose:
+      - "3000"
+
+  ai:
+    build:
+      context: ../../ai
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.prod
+    environment:
+      AI_PROVIDER: ${AI_PROVIDER:-mock}
+      AI_API_KEY: ${AI_API_KEY:-}
+      AI_BASE_URL: ${AI_BASE_URL:-https://api.deepseek.com/v1}
+      AI_MODEL: ${AI_MODEL:-deepseek-flash}
+      AI_DATABASE_URL: postgresql://${POSTGRES_USER:-blog}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-blog}
+      AI_INTERNAL_HMAC_SECRET: ${INTERNAL_HMAC_SECRET:?INTERNAL_HMAC_SECRET 必须设置}
+      AI_JWT_SECRET: ${JWT_SECRET}
+      AI_DAILY_LIMIT: ${AI_DAILY_LIMIT:-20}
+      AI_MEMBER_DAILY_LIMIT: ${AI_MEMBER_DAILY_LIMIT:-0}
+      AI_THINKING: ${AI_THINKING:-disabled}
+      AI_ENABLED: ${AI_ENABLED:-true}
+      TZ: Asia/Shanghai
+    mem_limit: 384m
+    expose:
+      - "8000"
+
+  backup:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-blog}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD 必须设置}
+      PGDATABASE: ${POSTGRES_DB:-blog}
+      BACKUP_AT: ${BACKUP_AT:-03:10}
+      RETENTION_DAYS: ${RETENTION_DAYS:-14}
+      TZ: Asia/Shanghai
+    volumes:
+      - backups:/backup
+      - ../backup:/scripts:ro
+    entrypoint: ["/bin/sh", "/scripts/schedule.sh"]
+
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    depends_on:
+      - api
+      - web
+    ports:
+      - "80:80"
+    volumes:
+      - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - uploads:/var/www/uploads:ro
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+
+volumes:
+  pgdata:
+  uploads:
+  backups:
