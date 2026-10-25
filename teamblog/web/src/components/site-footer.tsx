@@ -32,7 +32,7 @@ export function SiteFooter() {
             内测中
           </Badge>
           <span className="text-muted-foreground">
-            内测版本：前端为功能验证，未做完整视觉设计；站点运行在作者本机，尚未部署服务器。
+            一期内测：功能已上线，界面仍在打磨；暂用 IP 访问，域名备案后换 HTTPS。
           </span>
           <Link href="/feedback" className="text-foreground underline underline-offset-4">
             提交反馈

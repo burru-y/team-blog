@@ -58,7 +58,7 @@ const MAIN_NAV: NavItem[] = [
   { href: "/projects", label: "成果", icon: <FolderKanban className="size-4" /> },
   { href: "/timeline", label: "时间线", icon: <Clock3 className="size-4" /> },
   { href: "/feedback", label: "留言", icon: <MessageSquare className="size-4" /> },
-  { href: "/help/markdown", label: "帮助", icon: <BookOpen className="size-4" /> },
+  { href: "/help", label: "帮助", icon: <BookOpen className="size-4" /> },
 ];
 
 const MEMBER_NAV: NavItem[] = [
@@ -91,6 +91,9 @@ const SEGMENT_LABEL: Record<string, string> = {
   join: "邀请",
   help: "帮助",
   markdown: "Markdown 速查",
+  points: "打卡与积分",
+  invite: "邀请",
+  faq: "常见问题",
 };
 
 type Crumb = { label: string; href: string };
