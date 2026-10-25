@@ -80,7 +80,8 @@ export default async function HomePage() {
       </section>
 
       <section className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <TiltCard className="lg:col-span-2 border bg-card" max={4} glare={false}>
+          <Card className="border-0 bg-transparent">
           <CardHeader>
             <CardTitle className="text-base">团队打卡</CardTitle>
             <CardDescription>最近 17 周，颜色越深当天打卡的人越多</CardDescription>
@@ -92,8 +93,11 @@ export default async function HomePage() {
               <p className="text-sm text-muted-foreground">热力图暂时取不到数据。</p>
             )}
           </CardContent>
-        </Card>
-        <CheckinCard />
+          </Card>
+        </TiltCard>
+        <TiltCard className="flex border bg-card" max={4} glare={false}>
+          <CheckinCard />
+        </TiltCard>
       </section>
 
       <section className="space-y-4">
@@ -109,7 +113,7 @@ export default async function HomePage() {
             {page.items.map((member) => {
               const name = member.displayName ?? member.username;
               return (
-                <TiltCard key={member.id} className="border bg-card">
+                <TiltCard key={member.id} className="border bg-card" glare={false}>
                   <Link href={`/u/${member.username}`} className="block p-5">
                     <div className="flex items-center gap-3">
                       <Avatar className="size-11">
@@ -166,10 +170,8 @@ export default async function HomePage() {
 
         <div className="space-y-2">
           {VERSIONS.map((item) => (
-            <div
-              key={item.version}
-              className="card-lift flex flex-wrap items-baseline gap-2 rounded-lg border px-4 py-3 hover:card-lift-hover"
-            >
+            <TiltCard key={item.version} className="border bg-card" max={3} glare={false}>
+            <div className="flex flex-wrap items-baseline gap-2 px-4 py-3">
               <span className="font-mono text-sm">{item.version}</span>
               <span className="font-medium">{item.name}</span>
               <Badge variant={item.status === "done" ? "secondary" : "outline"}>
@@ -178,6 +180,7 @@ export default async function HomePage() {
               <span className="text-xs text-muted-foreground">{item.date}</span>
               <p className="w-full text-xs text-muted-foreground">{item.note}</p>
             </div>
+            </TiltCard>
           ))}
         </div>
       </section>
