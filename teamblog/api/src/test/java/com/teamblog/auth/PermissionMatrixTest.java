@@ -164,6 +164,11 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/checkins/status", Role.MEMBER, 200),
 
                 // 需要登录：上传（图片落盘 / 代码转 Markdown）
+                // 帮助资料：读公开，写仅管理员
+                new Case(HttpMethod.GET, "/api/v1/help/files", null, 200),
+                new Case(HttpMethod.POST, "/api/v1/admin/help/files", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/admin/help/files", Role.MEMBER, 403),
+                new Case(HttpMethod.DELETE, "/api/v1/admin/help/files", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/uploads/images", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/uploads/code", null, 401),
 

@@ -1,5 +1,6 @@
 import { pageQuery, request } from "./api";
 import type {
+  HelpFile,
   CommentResponse,
   HeatmapResponse,
   LearningLogResponse,
@@ -28,6 +29,11 @@ export const serverApi = {
 
   getLearningLog(id: string): Promise<LearningLogResponse> {
     return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  /** 帮助资料列表（帮助页下载区）。 */
+  listHelpFiles(): Promise<HelpFile[]> {
+    return request<HelpFile[]>("/api/v1/help/files", { base: ORIGIN });
   },
 
   /** 全站最新笔记（首页模块用）。不传 username 时后端返回最新 limit 条。 */

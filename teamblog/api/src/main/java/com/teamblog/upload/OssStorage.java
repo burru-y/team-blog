@@ -74,6 +74,34 @@ public class OssStorage {
         }
     }
 
+    /** 列出某个前缀下的对象（帮助资料用）。未启用 OSS 时返回空列表。 */
+    public java.util.List<StoredObject> list(String prefix) {
+        if (client == null) {
+            return java.util.List.of();
+        }
+        var request = new com.aliyun.oss.model.ListObjectsRequest(properties.bucket());
+        request.setPrefix(prefix);
+        request.setMaxKeys(200);
+        var result = client.listObjects(request);
+        return result.getObjectSummaries().stream()
+                .map(summary -> new StoredObject(
+                        summary.getKey(),
+                        properties.publicBaseUrl() + "/" + summary.getKey(),
+                        summary.getSize(),
+                        summary.getLastModified() == null ? "" : summary.getLastModified().toInstant().toString()))
+                .toList();
+    }
+
+    /** 删除一个对象。 */
+    public void delete(String key) {
+        if (client != null) {
+            client.deleteObject(properties.bucket(), key);
+        }
+    }
+
+    public record StoredObject(String key, String url, long size, String updatedAt) {
+    }
+
     @PreDestroy
     void shutdown() {
         if (client != null) {

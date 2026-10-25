@@ -1,5 +1,6 @@
 import type {
   AdminFeedback,
+  HelpFile,
   AdminProject,
   CheckinResult,
   InviteCreated,
@@ -149,6 +150,30 @@ export const api = {
   },
 
   /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
+  /** 帮助资料列表（公开）。 */
+  listHelpFiles(): Promise<HelpFile[]> {
+    return request<HelpFile[]>("/api/v1/help/files");
+  },
+
+  /** 管理员上传帮助资料：multipart，不能手设 Content-Type。 */
+  async uploadHelpFile(file: File, token: string): Promise<HelpFile> {
+    const form = new FormData();
+    form.append("file", file);
+    return request<HelpFile>("/api/v1/admin/help/files", {
+      method: "POST",
+      token,
+      body: form,
+    });
+  },
+
+  /** 管理员删除帮助资料。 */
+  deleteHelpFile(name: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/admin/help/files?name=${encodeURIComponent(name)}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+
   /** 生成摘要（服务端会写回数据库，返回的文本同时给前端展示）。 */
   summarizeLearningLog(id: string, token: string): Promise<{ summary: string }> {
     return request<{ summary: string }>(

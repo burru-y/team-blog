@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, api } from "@/lib/api";
@@ -16,11 +16,12 @@ import type {
   AdminFeedback,
   AdminProject,
   InviteCreated,
+  HelpFile,
   InviteSummary,
   UserResponse,
 } from "@/lib/types";
 
-type Tab = "members" | "invites" | "content" | "feedback";
+type Tab = "members" | "invites" | "content" | "feedback" | "help";
 
 /** 邀请状态的中文标签。与后端 AdminInvite.Status 一一对应。 */
 const STATUS_LABEL: Record<string, string> = {
@@ -35,6 +36,7 @@ const TABS: { key: Tab; label: string }[] = [
   { key: "invites", label: "邀约" },
   { key: "content", label: "内容" },
   { key: "feedback", label: "留言" },
+  { key: "help", label: "帮助资料" },
 ];
 
 /**
@@ -88,6 +90,7 @@ export default function AdminPage() {
       {tab === "invites" ? <InvitesTab token={token} onError={setError} /> : null}
       {tab === "content" ? <ContentTab token={token} onError={setError} /> : null}
       {tab === "feedback" ? <FeedbackTab token={token} onError={setError} /> : null}
+        {tab === "help" ? <HelpTab token={token} onError={setError} /> : null}
     </div>
   );
 }
@@ -453,6 +456,119 @@ function FeedbackTab({ token, onError }: { token: string; onError: (msg: string 
               <p className="whitespace-pre-wrap text-sm">{item.content}</p>
             </div>
           ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+/**
+ * 帮助资料：上传到 OSS 的公共文件，出现在 /help 页面的下载区。
+ *
+ * 不走数据库：列表直接从 OSS 列出来，文件在不在以 OSS 为准。
+ */
+function HelpTab({ token, onError }: { token: string; onError: (message: string) => void }) {
+  const [files, setFiles] = useState<HelpFile[]>([]);
+  const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  const reload = useCallback(async () => {
+    try {
+      setFiles(await api.listHelpFiles());
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "读取帮助资料失败");
+    } finally {
+      setLoading(false);
+    }
+  }, [onError]);
+
+  useEffect(() => {
+    void reload();
+  }, [reload]);
+
+  async function upload(file: File) {
+    setBusy(true);
+    try {
+      await api.uploadHelpFile(file, token);
+      await reload();
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "上传失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function remove(name: string) {
+    setBusy(true);
+    try {
+      await api.deleteHelpFile(name, token);
+      await reload();
+    } catch (error) {
+      onError(error instanceof ApiError ? messageFor(error.code) : "删除失败");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">帮助资料</CardTitle>
+        <CardDescription>
+          上传后自动出现在 /help 页面的下载区。支持 PDF、压缩包、图片与 Office 文档，单个不超过 100 MB。
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            type="file"
+            accept=".pdf,.zip,.md,.txt,.png,.jpg,.jpeg,.docx,.xlsx,.pptx"
+            disabled={busy}
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              if (file) {
+                void upload(file);
+                event.target.value = "";
+              }
+            }}
+            className="max-w-sm"
+          />
+          {busy ? <span className="text-xs text-muted-foreground">处理中…</span> : null}
+        </div>
+
+        {loading ? (
+          <p className="text-sm text-muted-foreground">正在读取…</p>
+        ) : files.length === 0 ? (
+          <p className="text-sm text-muted-foreground">还没有上传任何资料。</p>
+        ) : (
+          <ul className="divide-y rounded-lg border">
+            {files.map((file) => (
+              <li key={file.name} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {(file.size / 1024 / 1024).toFixed(1)} MB
+                  </p>
+                </div>
+                <a
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs text-brand hover:underline"
+                >
+                  查看
+                </a>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  disabled={busy}
+                  onClick={() => void remove(file.name)}
+                >
+                  删除
+                </Button>
+              </li>
+            ))}
+          </ul>
         )}
       </CardContent>
     </Card>

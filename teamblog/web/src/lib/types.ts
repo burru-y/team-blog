@@ -140,3 +140,11 @@ export type ErrorCode =
   | "UPSTREAM_FAILED"
   | "INTERNAL"
   | "NETWORK";
+
+/** 帮助资料（存在 OSS 上的文件）。 */
+export type HelpFile = {
+  name: string;
+  url: string;
+  size: number;
+  updatedAt: string;
+};
