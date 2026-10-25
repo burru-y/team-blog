@@ -79,7 +79,7 @@ export default async function HomePage() {
         </dl>
       </section>
 
-      <section className="grid gap-4 lg:grid-cols-3">
+      <section className="grid items-start gap-4 lg:grid-cols-3">
         <TiltCard className="lg:col-span-2 border bg-card" max={4} glare={false}>
           <Card className="border-0 bg-transparent">
           <CardHeader>
@@ -95,7 +95,7 @@ export default async function HomePage() {
           </CardContent>
           </Card>
         </TiltCard>
-        <TiltCard className="h-full" max={4} glare={false}>
+        <TiltCard className="border bg-card" max={4} glare={false}>
           <CheckinCard />
         </TiltCard>
       </section>
