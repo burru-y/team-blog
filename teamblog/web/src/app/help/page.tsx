@@ -1,19 +1,14 @@
 import Link from "next/link";
-import { BookOpen, CircleHelp, Download, FileText, ListChecks, Send, UserPlus } from "lucide-react";
+import { BookOpen, CircleHelp, Download, ListChecks, Send, UserPlus } from "lucide-react";
 
 import { PageHeader } from "@/components/page-header";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { serverApi } from "@/lib/server-api";
-import type { HelpFile } from "@/lib/types";
 
 export const metadata = {
   title: "帮助 · 欲晓",
   description: "写笔记、发成果、打卡积分、邀请同学，以及可下载的工具。",
 };
-
-// 下载区来自接口，因此禁止静态预渲染
-export const dynamic = "force-dynamic";
 
 /**
  * 帮助中心。
@@ -51,6 +46,13 @@ const TOPICS = [
     meta: "约 2 分钟",
   },
   {
+    href: "/help/markdown#downloads",
+    title: "本地编辑工具（Typora）",
+    description: "Typora 安装包、增强插件与配置说明的下载，含使用声明。",
+    icon: <Download className="size-4" />,
+    meta: "含下载",
+  },
+  {
     href: "/help/faq",
     title: "常见问题",
     description: "登录、图片、AI 问答、手机端排版的常见故障排查。",
@@ -59,17 +61,7 @@ const TOPICS = [
   },
 ];
 
-function formatSize(bytes: number) {
-  if (bytes >= 1024 * 1024) {
-    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
-  }
-  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
-}
-
-export default async function HelpPage() {
-  // 读取失败不该让整页挂掉：说明部分仍然可用
-  const files = await serverApi.listHelpFiles().catch(() => [] as HelpFile[]);
-
+export default function HelpPage() {
   return (
     <div className="space-y-10">
       <PageHeader
@@ -103,47 +95,6 @@ export default async function HelpPage() {
             </Card>
           ))}
         </div>
-      </section>
-
-      <section className="space-y-4 border-t pt-8">
-        <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold tracking-tight">资料下载</h2>
-          <span className="text-xs text-muted-foreground">
-            {files.length > 0 ? `${files.length} 个文件` : "暂无文件"}
-          </span>
-        </div>
-
-        {files.length === 0 ? (
-          <div className="rounded-xl border border-dashed px-5 py-8 text-center text-sm text-muted-foreground">
-            管理员还没有上传资料。
-          </div>
-        ) : (
-          <ul className="divide-y rounded-xl border">
-            {files.map((file) => (
-              <li key={file.name} className="flex flex-wrap items-center gap-3 px-4 py-3">
-                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
-                  {file.name.endsWith(".pdf") ? (
-                    <FileText className="size-4" />
-                  ) : (
-                    <Download className="size-4" />
-                  )}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium">{file.name}</p>
-                  <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
-                </div>
-                <a
-                  href={file.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="shrink-0 text-sm text-brand hover:underline"
-                >
-                  下载 ↓
-                </a>
-              </li>
-            ))}
-          </ul>
-        )}
       </section>
 
       <div className="rounded-xl border border-dashed px-5 py-4 text-sm text-muted-foreground">

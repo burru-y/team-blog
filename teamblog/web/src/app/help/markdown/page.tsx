@@ -1,8 +1,11 @@
 import Link from "next/link";
+import { AlertTriangle, Download, FileText } from "lucide-react";
 
 import { Markdown } from "@/components/markdown";
 import { PageHeader } from "@/components/page-header";
 import { buttonVariants } from "@/components/ui/button";
+import { serverApi } from "@/lib/server-api";
+import type { HelpFile } from "@/lib/types";
 
 export const metadata = {
   title: "Markdown 速查 · 欲晓",
@@ -145,7 +148,20 @@ const GUIDE = [
   "> 本站不支持 Mermaid 图表和数学公式，写进正文会显示成纯文本。需要图表时用截图代替。",
 ].join("\n");
 
-export default function MarkdownHelpPage() {
+// 下载区来自接口，禁止静态预渲染
+export const dynamic = "force-dynamic";
+
+function formatSize(bytes: number) {
+  if (bytes >= 1024 * 1024) {
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  }
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+export default async function MarkdownHelpPage() {
+  // 只取 Typora 相关文件：这个页面负责本地编辑工具，别的资料不该混进来
+  const all = await serverApi.listHelpFiles().catch(() => [] as HelpFile[]);
+  const files = all.filter((file) => /typora/i.test(file.name));
   return (
     <div className="space-y-8">
       <PageHeader
@@ -161,6 +177,84 @@ export default function MarkdownHelpPage() {
       />
 
       <Markdown>{GUIDE}</Markdown>
+
+      <section id="downloads" className="space-y-4 border-t pt-8">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="text-lg font-semibold tracking-tight">本地编辑工具下载</h2>
+          <span className="text-xs text-muted-foreground">
+            {files.length > 0 ? `${files.length} 个文件` : "暂无文件"}
+          </span>
+        </div>
+
+        {files.length === 0 ? (
+          <div className="rounded-xl border border-dashed px-5 py-8 text-center text-sm text-muted-foreground">
+            还没有上传文件，管理员可在「后台 → 帮助资料」添加。
+          </div>
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {files.map((file) => (
+              <li key={file.name} className="flex flex-wrap items-center gap-3 px-4 py-3">
+                <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-muted text-muted-foreground">
+                  {file.name.endsWith(".pdf") ? (
+                    <FileText className="size-4" />
+                  ) : (
+                    <Download className="size-4" />
+                  )}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-medium">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">{formatSize(file.size)}</p>
+                </div>
+                <a
+                  href={file.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="shrink-0 text-sm text-brand hover:underline"
+                >
+                  下载 ↓
+                </a>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {/* 声明必须显眼：这里面有非官方分发的软件 */}
+        <div className="space-y-2 rounded-xl border border-amber-500/40 bg-amber-500/10 px-5 py-4 text-sm leading-relaxed text-amber-900 dark:text-amber-200">
+          <p className="flex items-center gap-2 font-medium">
+            <AlertTriangle className="size-4 shrink-0" aria-hidden />
+            使用前请阅读
+          </p>
+          <ul className="list-disc space-y-1.5 pl-5">
+            <li>
+              <span className="font-medium">Typora 安装包为第三方激活版本</span>
+              ，并非官方分发。仅供个人学习交流使用，请勿用于商业用途或再次传播。
+            </li>
+            <li>
+              使用正版请前往官网
+              <a
+                href="https://typora.io/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mx-1 underline underline-offset-4"
+              >
+                typora.io
+              </a>
+              （约 ¥89，可激活 3 台设备）。这是对开发者最直接的支持。
+            </li>
+            <li>
+              激活补丁可能被杀毒软件报毒或拦截，这是此类文件的常见现象。
+              <span className="font-medium">是否使用由你自行判断，本站不承担由此产生的任何后果。</span>
+            </li>
+            <li>
+              文件由管理员从网络收集，未做安全审计；如需彻底规避风险，请改用
+              VS Code、Obsidian 等免费编辑器，或购买正版。
+            </li>
+            <li>
+              若版权方或平台要求，本站会立即移除相关文件。
+            </li>
+          </ul>
+        </div>
+      </section>
 
       <div className="border-t pt-6">
         <Link href="/" className={buttonVariants({ variant: "ghost" })}>
