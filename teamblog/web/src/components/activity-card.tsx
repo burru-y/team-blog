@@ -46,8 +46,7 @@ const LEVEL_OPACITY: Record<ContributionLevel, number> = {
 };
 
 const MONTH_NAMES = [
-  "1月", "2月", "3月", "4月", "5月", "6月",
-  "7月", "8月", "9月", "10月", "11月", "12月",
+  "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12",
 ];
 
 const gapFor = (cellSize: number) => Math.max(2, Math.round(cellSize / 4));
@@ -193,7 +192,7 @@ function ContributionGrid({
           {toMonthLabels(visible).map((month, index) => (
             <div key={index} className="relative h-3 shrink-0" style={{ width: cellSize }}>
               {month && (
-                <span className="absolute top-0 left-0 text-xs leading-none text-muted-foreground/70">
+                <span className="absolute top-0 left-0 whitespace-nowrap text-xs leading-none text-muted-foreground/70">
                   {month}
                 </span>
               )}
