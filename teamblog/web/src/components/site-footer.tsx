@@ -20,8 +20,20 @@ const STACK: { group: string; items: string[] }[] = [
   { group: "部署", items: ["Docker Compose", "Nginx", "HTTPS"] },
 ];
 
-/** 开发者：想换显示名，改这一处即可（GitHub 账号来自仓库 origin）。 */
-const DEVELOPERS = [{ name: "burru-y", github: "https://github.com/burru-y" }];
+/**
+ * 开发者与分工。
+ *
+ * 按前后端 / 数据 / AI 分列，而不是笼统写「一起做的」——
+ * 分工本身是信息，读的人能判断该找谁问什么。
+ * 名字用站内用户名，点进去就是个人主页。
+ */
+const DEVELOPERS: { role: string; name: string; username: string; note?: string }[] = [
+  { role: "前端", name: "廖呈睿", username: "qsburru" },
+  { role: "后端", name: "廖呈睿", username: "qsburru" },
+  { role: "数据", name: "廖呈睿", username: "qsburru" },
+  { role: "AI", name: "廖呈睿", username: "qsburru" },
+  { role: "网站建设", name: "祝宇航", username: "wayne", note: "协作" },
+];
 
 export function SiteFooter() {
   return (
@@ -56,19 +68,23 @@ export function SiteFooter() {
         </div>
 
         <div className="flex flex-wrap items-center justify-between gap-3 border-t pt-4 text-xs text-muted-foreground">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <span>开发者：</span>
-            {DEVELOPERS.map((dev) => (
-              <a
-                key={dev.name}
-                href={dev.github}
-                target="_blank"
-                rel="noreferrer"
-                className="text-foreground underline underline-offset-4"
-              >
-                @{dev.name}
-              </a>
-            ))}
+            {/* 按角色列出：前端 / 后端 / 数据 / AI 分别是谁 */}
+            <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              {DEVELOPERS.map((dev, index) => (
+                <span key={`${dev.role}-${dev.username}`} className="inline-flex items-center gap-1">
+                  {index > 0 ? <span className="text-muted-foreground/40">·</span> : null}
+                  <span className="text-muted-foreground">{dev.role}</span>
+                  <Link
+                    href={`/u/${dev.username}`}
+                    className="text-foreground underline underline-offset-4 hover:text-brand"
+                  >
+                    {dev.name}
+                  </Link>
+                </span>
+              ))}
+            </span>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <Link href="/timeline" className="underline underline-offset-4 hover:text-foreground">
