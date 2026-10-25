@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
 import { PublishTabs } from "@/components/publish-tabs";
+import { UploadQueue } from "@/components/upload-queue";
 import { useSession } from "@/lib/session";
 
 import { PageHeader } from "@/components/page-header";
@@ -47,32 +48,11 @@ export default function PublishLearningPage() {
     );
   }
 
-  async function handleCode(file: File) {
-    if (!token) {
-      return;
-    }
-    setError(null);
-    try {
-      const block = await api.uploadCode(file, token);
-      setContentMd((current) => `${current}${current ? "\n\n" : ""}${block.markdown}`);
-      setNotice(`已插入 ${block.language} 代码块（${block.lines} 行）`);
-    } catch (err) {
-      setError(err instanceof ApiError ? messageFor(err.code) : "代码文件解析失败");
-    }
-  }
 
-  async function handleImage(file: File) {
-    if (!token) {
-      return;
-    }
-    setError(null);
-    try {
-      const uploaded = await api.uploadImage(file, token);
-      setContentMd((current) => `${current}${current ? "\n\n" : ""}![图片](${uploaded.url})`);
-      setNotice("已插入图片");
-    } catch (err) {
-      setError(err instanceof ApiError ? messageFor(err.code) : "图片上传失败");
-    }
+
+  /** 把上传产物的 Markdown 追加到正文末尾。 */
+  function appendMd(markdown: string) {
+    setContentMd((current) => `${current}${current ? "\n\n" : ""}${markdown}`);
   }
 
   async function handleSubmit(event: React.FormEvent) {
@@ -129,35 +109,31 @@ export default function PublishLearningPage() {
         <CardHeader>
           <CardTitle className="text-base">插入</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-4">
-          <div className="space-y-1">
-            <Label htmlFor="code" className="text-xs">代码文件</Label>
-            <Input
-              id="code"
-              type="file"
-              accept=".java,.py,.js,.ts,.tsx,.sql,.json,.yml,.yaml,.sh,.kt,.go,.rs,.c,.cpp,.cs,.rb,.php,.md,.txt"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  void handleCode(file);
-                }
-              }}
-            />
-          </div>
-          <div className="space-y-1">
-            <Label htmlFor="image2" className="text-xs">图片</Label>
-            <Input
-              id="image2"
-              type="file"
-              accept="image/png,image/jpeg,image/gif,image/webp"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  void handleImage(file);
-                }
-              }}
-            />
-          </div>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <UploadQueue
+            kind="code"
+            accept=".java,.py,.js,.ts,.tsx,.sql,.json,.yml,.yaml,.sh,.kt,.go,.rs,.c,.cpp,.cs,.rb,.php,.md,.txt"
+            title="拖入代码文件"
+            description="会作为代码块插入正文光标处"
+            variant="default"
+            onUploaded={({ data }) => {
+              const block = data as { markdown: string; language: string; lines: number };
+              appendMd(block.markdown);
+              setNotice(`已插入 ${block.language} 代码块（${block.lines} 行）`);
+            }}
+          />
+          <UploadQueue
+            kind="image"
+            accept="image/png,image/jpeg,image/gif,image/webp"
+            title="拖入图片"
+            description="会插入 Markdown 图片语法"
+            variant="default"
+            onUploaded={({ data }) => {
+              const image = data as { url: string };
+              appendMd(`![图片](${image.url})`);
+              setNotice("已插入图片");
+            }}
+          />
         </CardContent>
       </Card>
 

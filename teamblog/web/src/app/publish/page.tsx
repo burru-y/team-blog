@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
 import { PublishTabs } from "@/components/publish-tabs";
+import { UploadQueue } from "@/components/upload-queue";
 import { useSession } from "@/lib/session";
 import type { ProjectCreateBody } from "@/lib/types";
 
@@ -33,7 +34,6 @@ export default function PublishProjectPage() {
   const [contentMd, setContentMd] = useState("");
   const [imageUrl, setImageUrl] = useState("");
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   if (loading) {
@@ -47,21 +47,6 @@ export default function PublishProjectPage() {
     );
   }
 
-  async function handleImage(file: File) {
-    if (!token) {
-      return;
-    }
-    setUploading(true);
-    setError(null);
-    try {
-      const uploaded = await api.uploadImage(file, token);
-      setImageUrl(uploaded.url);
-    } catch (err) {
-      setError(err instanceof ApiError ? messageFor(err.code) : "上传失败");
-    } finally {
-      setUploading(false);
-    }
-  }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -145,19 +130,18 @@ export default function PublishProjectPage() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="image">配图</Label>
-        <Input
-          id="image"
-          type="file"
+        <Label>配图</Label>
+        <UploadQueue
+          kind="image"
           accept="image/png,image/jpeg,image/gif,image/webp"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) {
-              void handleImage(file);
-            }
+          title="拖入或点选一张图片"
+          description="PNG / JPEG / GIF / WebP，单张不超过 5MB"
+          variant="default"
+          onUploaded={({ data }) => {
+            const uploaded = data as { url: string };
+            setImageUrl(uploaded.url);
           }}
         />
-        {uploading ? <p className="text-xs text-muted-foreground">上传中…</p> : null}
         {imageUrl ? <p className="text-xs text-muted-foreground">已上传：{imageUrl}</p> : null}
       </div>
 
@@ -174,7 +158,7 @@ export default function PublishProjectPage() {
 
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
 
-      <Button type="submit" disabled={busy || uploading}>
+      <Button type="submit" disabled={busy}>
         {busy ? "发布中…" : "发布"}
       </Button>
     </form>
