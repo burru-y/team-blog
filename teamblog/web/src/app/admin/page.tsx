@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
 import { useSession } from "@/lib/session";
+import { PageHeader } from "@/components/page-header";
 import type {
   AdminFeedback,
   AdminProject,
@@ -62,13 +63,11 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">后台</h1>
-        <p className="text-sm text-muted-foreground">
-          成员与角色、邀请链接、内容下架、访客留言。
-        </p>
-      </header>
+    <div className="space-y-8">
+      <PageHeader
+        title="后台"
+        description="成员与角色、邀请链接、内容下架、访客留言。"
+      />
 
       <div className="flex gap-2 border-b pb-3">
         {TABS.map((item) => (

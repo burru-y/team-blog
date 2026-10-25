@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
 import { messageFor } from "@/lib/messages";
 
+import { PageHeader } from "@/components/page-header";
 /**
  * 留言页（公开，无需登录）。
  *
@@ -52,12 +53,10 @@ export default function FeedbackPage() {
 
   return (
     <div className="mx-auto max-w-xl space-y-6">
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">留言反馈</h1>
-        <p className="text-sm text-muted-foreground">
-          发现链接失效、内容有误，或者想提建议，都可以写在这里。不需要登录。
-        </p>
-      </header>
+      <PageHeader
+        title="留言反馈"
+        description="发现链接失效、内容有误，或者想提建议，都可以写在这里。不需要登录。"
+      />
 
       {done ? (
         <Alert>

@@ -14,6 +14,7 @@ import { PublishTabs } from "@/components/publish-tabs";
 import { useSession } from "@/lib/session";
 import type { ProjectCreateBody } from "@/lib/types";
 
+import { PageHeader } from "@/components/page-header";
 const TYPES = [
   { value: "PROJECT", label: "项目", hint: "需要仓库链接 + 正文" },
   { value: "CERTIFICATE", label: "证书", hint: "至少要有图片或链接" },
@@ -96,10 +97,7 @@ export default function PublishProjectPage() {
     <form onSubmit={handleSubmit} className="mx-auto max-w-2xl space-y-6">
       <PublishTabs />
 
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">发布成果</h1>
-        <p className="text-sm text-muted-foreground">{activeType?.hint}</p>
-      </header>
+      <PageHeader title="发布成果" description={activeType?.hint} />
 
       <Card>
         <CardHeader>

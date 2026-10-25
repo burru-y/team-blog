@@ -5,6 +5,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { MilestonesTimeline } from "@/components/milestones-timeline";
 import { MILESTONES, STATUS_LABEL } from "@/lib/timeline";
 
+import { PageHeader } from "@/components/page-header";
 /**
  * 版本时间线（静态页）。
  *
@@ -19,12 +20,11 @@ export const metadata = {
 export default function TimelinePage() {
   return (
     <div className="space-y-10">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">版本时间线</h1>
-        <p className="text-sm text-muted-foreground">
-          按开发顺序记录各阶段的完成情况。日期取真实提交时间，未完成为计划。
-        </p>
-      </header>
+      <PageHeader
+        size="large"
+        title="版本时间线"
+        description="按开发顺序记录各阶段的完成情况。日期取真实提交时间，未完成为计划。"
+      />
 
       <MilestonesTimeline />
 

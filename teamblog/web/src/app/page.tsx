@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { CheckinCard } from "@/components/checkin-card";
+import { EmptyState } from "@/components/empty-state";
 import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
 import { STATUS_LABEL, VERSIONS } from "@/lib/timeline";
@@ -96,53 +97,55 @@ export default async function HomePage() {
 
       <section className="space-y-4">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-semibold">团队成员</h2>
+          <h2 className="text-xl font-semibold tracking-tight">团队成员</h2>
           <span className="text-sm text-muted-foreground">共 {page.items.length} 人</span>
         </div>
 
         {page.items.length === 0 ? (
-          <Card>
-            <CardContent className="py-10 text-center text-sm text-muted-foreground">
-              还没有成员。管理员生成邀请链接后，成员凭链接注册。
-            </CardContent>
-          </Card>
+          <EmptyState
+            title="还没有成员"
+            description="管理员生成邀请链接后，成员凭链接注册。"
+          />
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {page.items.map((member) => (
-              <Card key={member.id} className="card-lift hover:card-lift-hover hover:border-foreground/20">
-                <CardHeader className="flex-row items-center gap-3 space-y-0">
-                  <Avatar className="size-10">
-                    <AvatarFallback>{(member.displayName ?? member.username).slice(0, 2).toUpperCase()}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="flex items-baseline gap-2 truncate text-base">
-                      <Link href={`/u/${member.username}`} className="hover:underline">
-                        {member.displayName ?? member.username}
-                      </Link>
-                      {member.displayName && member.displayName !== member.username ? (
-                        <span className="text-xs font-normal text-muted-foreground">
-                          @{member.username}
-                        </span>
-                      ) : null}
-                    </CardTitle>
-                    <CardDescription className="flex items-center gap-2">
-                      <Badge variant={member.role === "ADMIN" ? "default" : "secondary"}>
-                        {member.role === "ADMIN" ? "管理员" : "成员"}
-                      </Badge>
-                      <span>{member.totalPoints} 分</span>
-                    </CardDescription>
-                  </div>
-                </CardHeader>
-                <CardContent className="text-sm text-muted-foreground">
-                  {member.bio ? (
-                    <p className="line-clamp-2">{member.bio}</p>
-                  ) : (
-                    <p className="italic">这个人很神秘，还没有写简介</p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+          <ul className="divide-y overflow-hidden rounded-xl border">
+            {page.items.map((member) => {
+              const name = member.displayName ?? member.username;
+              return (
+                <li key={member.id}>
+                  <Link
+                    href={`/u/${member.username}`}
+                    className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-muted/40"
+                  >
+                    <Avatar className="size-10">
+                      <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+
+                    <div className="min-w-0 flex-1 space-y-1">
+                      <p className="flex items-baseline gap-2">
+                        <span className="truncate font-medium">{name}</span>
+                        {name !== member.username ? (
+                          <span className="text-xs text-muted-foreground">@{member.username}</span>
+                        ) : null}
+                        {member.role === "ADMIN" ? (
+                          <Badge variant="secondary" className="text-xs">
+                            管理员
+                          </Badge>
+                        ) : null}
+                      </p>
+                      <p className="truncate text-xs text-muted-foreground">
+                        {member.bio || "还没有写简介"}
+                      </p>
+                    </div>
+
+                    <div className="shrink-0 text-right">
+                      <p className="text-sm font-medium tabular-nums">{member.totalPoints}</p>
+                      <p className="text-xs text-muted-foreground">积分</p>
+                    </div>
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
         )}
 
         {page.nextCursor ? (

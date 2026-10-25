@@ -1,6 +1,8 @@
 import Link from "next/link";
 
-import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/empty-state";
+import { PageHeader } from "@/components/page-header";
+import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { serverApi } from "@/lib/server-api";
 
@@ -17,41 +19,51 @@ export default async function ProjectsPage() {
   const page = await serverApi.listProjects(undefined, 20);
 
   return (
-    <div className="space-y-8">
-      <header className="space-y-2">
-        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">团队成果</h1>
-        <p className="text-sm text-muted-foreground">
-          项目、证书与奖项。点进去可以看详细内容，作者本人与管理员可以下架。
-        </p>
-      </header>
+    <div className="space-y-10">
+      <PageHeader
+        size="large"
+        title="团队成果"
+        description="项目、证书与奖项。点进去可以看详细内容，作者本人与管理员可以下架。"
+      />
 
       {page.items.length === 0 ? (
-        <Card>
-          <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            还没有成果。登录后可以发布第一条。
-          </CardContent>
-        </Card>
+        <EmptyState
+          title="还没有成果"
+          description="登录后可以发布第一条项目或奖项。"
+          action={
+            <Link href="/publish" className={buttonVariants({ size: "sm" })}>
+              去发布
+            </Link>
+          }
+        />
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
+        <ul className="divide-y border-t">
           {page.items.map((project) => (
-            <Card key={project.id} className="card-lift hover:card-lift-hover hover:border-foreground/20">
-              <CardHeader className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <Badge variant="outline">{TYPE_LABEL[project.type] ?? project.type}</Badge>
-                  <span className="text-xs text-muted-foreground">{project.ownerUsername}</span>
+            <li key={project.id}>
+              <Link
+                href={`/projects/${project.id}`}
+                className="group flex flex-col gap-2 px-1 py-5 transition-colors hover:bg-muted/30 sm:flex-row sm:items-baseline sm:gap-6"
+              >
+                <div className="flex shrink-0 items-center gap-2 sm:w-32">
+                  <span className="text-xs tracking-wide text-muted-foreground uppercase">
+                    {TYPE_LABEL[project.type] ?? project.type}
+                  </span>
                 </div>
-                <CardTitle className="text-base">
-                  <Link href={`/projects/${project.id}`} className="hover:underline">
-                    {project.title}
-                  </Link>
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="line-clamp-3 text-sm text-muted-foreground">
-                {project.description}
-              </CardContent>
-            </Card>
+
+                <div className="min-w-0 flex-1 space-y-1">
+                  <p className="font-medium group-hover:underline">{project.title}</p>
+                  <p className="line-clamp-2 text-sm leading-relaxed text-muted-foreground">
+                    {project.description}
+                  </p>
+                </div>
+
+                <div className="shrink-0 text-xs text-muted-foreground sm:w-24 sm:text-right">
+                  {project.ownerUsername}
+                </div>
+              </Link>
+            </li>
           ))}
-        </div>
+        </ul>
       )}
     </div>
   );

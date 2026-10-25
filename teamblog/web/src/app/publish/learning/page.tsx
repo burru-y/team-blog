@@ -14,6 +14,7 @@ import { messageFor } from "@/lib/messages";
 import { PublishTabs } from "@/components/publish-tabs";
 import { useSession } from "@/lib/session";
 
+import { PageHeader } from "@/components/page-header";
 /**
  * 学习内容编辑器。
  *
@@ -109,12 +110,10 @@ export default function PublishLearningPage() {
     <form onSubmit={handleSubmit} className="mx-auto max-w-3xl space-y-6">
       <PublishTabs />
 
-      <header className="space-y-2">
-        <h1 className="text-2xl font-semibold tracking-tight">写学习内容</h1>
-        <p className="text-sm text-muted-foreground">
-          每篇 +10 分，每天前 3 篇计分；之后的照样保存，只是不再加分。
-        </p>
-      </header>
+      <PageHeader
+        title="写学习内容"
+        description="每篇 +10 分，每天前 3 篇计分；之后的照样保存，只是不再加分。"
+      />
 
       <div className="space-y-2">
         <Label htmlFor="title">标题</Label>
