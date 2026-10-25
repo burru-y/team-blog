@@ -47,15 +47,18 @@ export default async function HomePage() {
       <section className="animate-fade-up space-y-6 pt-6">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">一期 · 内测</Badge>
-          <Badge variant="secondary">名称待定</Badge>
         </div>
 
         <h1 className="max-w-3xl text-4xl leading-tight font-semibold sm:text-5xl">
-          团队技术博客
+          欲晓
           <span className="block text-muted-foreground">
             记录每一次把问题想清楚的<span className="text-brand">过程</span>。
           </span>
         </h1>
+
+        <p className="text-sm text-muted-foreground">
+          东方欲晓，莫道君行早。
+        </p>
 
         <p className="max-w-2xl text-base leading-relaxed text-muted-foreground">
           成员在这里发布项目成果与学习笔记，每天打卡积累积分；

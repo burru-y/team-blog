@@ -13,7 +13,7 @@ import { PageHeader } from "@/components/page-header";
  * 日期取真实提交时间，不编造；未完成的事项标注为"计划中"。
  */
 export const metadata = {
-  title: "版本时间线 · TeamBlog",
+  title: "版本时间线 · 欲晓",
   description: "项目各阶段的完成情况与后续计划",
 };
 

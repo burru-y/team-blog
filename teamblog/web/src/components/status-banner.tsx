@@ -53,8 +53,8 @@ export function StatusBanner() {
             。
           </p>
           <p>
-            <span className="font-medium">站点名称待定</span>
-            ：当前暂用「TeamBlog」，正式名称确定后统一替换；如果你有建议，欢迎一并反馈。
+            <span className="font-medium">站点名称已定</span>
+            ：团队名为「欲晓」，取自「东方欲晓，莫道君行早」。
           </p>
           <p>
             <span className="font-medium">尚未部署服务器</span>

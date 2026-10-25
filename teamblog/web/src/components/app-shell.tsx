@@ -82,7 +82,7 @@ function currentTitle(pathname: string) {
     .slice()
     .sort((a, b) => b.href.length - a.href.length)
     .find((item) => isActive(pathname, item.href));
-  return hit?.label ?? "TeamBlog";
+  return hit?.label ?? "欲晓";
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -92,7 +92,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <AnimatedSidebarProvider className="h-svh overflow-hidden bg-background">
       <AnimatedSidebar
-        ariaLabel="TeamBlog 导航"
+        ariaLabel="欲晓 导航"
         collapsible="icon"
         className="min-h-0"
         panelClassName="h-full border-foreground/10"
@@ -101,10 +101,11 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="flex min-h-11 items-center gap-2 overflow-hidden px-2">
             <Link href="/" className="flex min-w-0 flex-1 items-center gap-2">
               <span className="grid size-7 shrink-0 place-items-center rounded-lg bg-foreground text-xs font-semibold text-background">
-                TB
+                欲
               </span>
-              <span className="truncate text-sm font-semibold group-data-[state=collapsed]/sidebar:hidden">
-                TeamBlog
+              <span className="min-w-0 group-data-[state=collapsed]/sidebar:hidden">
+                <span className="block truncate text-sm font-semibold">欲晓</span>
+                <span className="block truncate text-xs text-muted-foreground">团队技术博客</span>
               </span>
             </Link>
             <AnimatedSidebarClose className="ml-auto text-muted-foreground hover:bg-muted md:hidden">

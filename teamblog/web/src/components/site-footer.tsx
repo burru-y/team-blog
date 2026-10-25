@@ -82,7 +82,7 @@ export function SiteFooter() {
             >
               源码
             </a>
-            <span>TeamBlog · 团队技术博客</span>
+            <span>欲晓 · 团队技术博客</span>
           </div>
         </div>
       </div>

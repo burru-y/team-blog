@@ -8,8 +8,8 @@ import { Toaster } from "@/components/ui/sonner";
 import { SessionProvider } from "@/lib/session";
 
 export const metadata: Metadata = {
-  title: "TeamBlog（名称待定）· 团队技术博客",
-  description: "团队的技术成果、学习记录与打卡热度（内测中）",
+  title: "欲晓 · 团队技术博客",
+  description: "东方欲晓，莫道君行早。团队的技术成果、学习记录与打卡热度（内测中）",
 };
 
 export default function RootLayout({
