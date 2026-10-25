@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { CheckinCard } from "@/components/checkin-card";
 import { EmptyState } from "@/components/empty-state";
+import { TiltCard } from "@/components/motion/tilt-card";
 import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
 import { STATUS_LABEL, VERSIONS } from "@/lib/timeline";
@@ -102,50 +103,44 @@ export default async function HomePage() {
         </div>
 
         {page.items.length === 0 ? (
-          <EmptyState
-            title="还没有成员"
-            description="管理员生成邀请链接后，成员凭链接注册。"
-          />
+          <EmptyState title="还没有成员" description="管理员生成邀请链接后，成员凭链接注册。" />
         ) : (
-          <ul className="divide-y overflow-hidden rounded-xl border">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {page.items.map((member) => {
               const name = member.displayName ?? member.username;
               return (
-                <li key={member.id}>
-                  <Link
-                    href={`/u/${member.username}`}
-                    className="flex items-center gap-4 px-4 py-4 transition-colors hover:bg-muted/40"
-                  >
-                    <Avatar className="size-10">
-                      <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-
-                    <div className="min-w-0 flex-1 space-y-1">
-                      <p className="flex items-baseline gap-2">
-                        <span className="truncate font-medium">{name}</span>
-                        {name !== member.username ? (
-                          <span className="text-xs text-muted-foreground">@{member.username}</span>
-                        ) : null}
-                        {member.role === "ADMIN" ? (
-                          <Badge variant="secondary" className="text-xs">
-                            管理员
-                          </Badge>
-                        ) : null}
-                      </p>
-                      <p className="truncate text-xs text-muted-foreground">
-                        {member.bio || "还没有写简介"}
-                      </p>
+                <TiltCard key={member.id} className="border bg-card">
+                  <Link href={`/u/${member.username}`} className="block p-5">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="size-11">
+                        <AvatarFallback>{name.slice(0, 2).toUpperCase()}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-medium">{name}</p>
+                        <p className="truncate text-xs text-muted-foreground">
+                          {name !== member.username ? `@${member.username}` : "成员"}
+                        </p>
+                      </div>
+                      {member.role === "ADMIN" ? (
+                        <Badge variant="secondary" className="shrink-0 text-xs">
+                          管理员
+                        </Badge>
+                      ) : null}
                     </div>
 
-                    <div className="shrink-0 text-right">
-                      <p className="text-sm font-medium tabular-nums">{member.totalPoints}</p>
-                      <p className="text-xs text-muted-foreground">积分</p>
+                    <p className="mt-3 line-clamp-2 min-h-10 text-xs leading-relaxed text-muted-foreground">
+                      {member.bio || "还没有写简介"}
+                    </p>
+
+                    <div className="mt-3 flex items-baseline justify-between border-t pt-3">
+                      <span className="text-xs text-muted-foreground">积分</span>
+                      <span className="font-medium tabular-nums">{member.totalPoints}</span>
                     </div>
                   </Link>
-                </li>
+                </TiltCard>
               );
             })}
-          </ul>
+          </div>
         )}
 
         {page.nextCursor ? (
