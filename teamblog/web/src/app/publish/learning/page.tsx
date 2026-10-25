@@ -138,7 +138,17 @@ export default function PublishLearningPage() {
       </Card>
 
       <div className="space-y-2">
-        <Label htmlFor="content">正文（Markdown）</Label>
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <Label htmlFor="content">正文（Markdown）</Label>
+          {/* 不熟悉 Markdown 的人在这里会卡住，给一个随手可点的入口 */}
+          <Link
+            href="/help/markdown"
+            target="_blank"
+            className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+          >
+            不会写？看语法速查 ↗
+          </Link>
+        </div>
         <Textarea
           id="content"
           value={contentMd}
