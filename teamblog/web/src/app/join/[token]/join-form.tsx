@@ -13,6 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { PasswordInput } from "@/components/password-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ApiError, api } from "@/lib/api";
@@ -148,16 +149,13 @@ export function JoinForm({ token }: { token: string }) {
 
             <div className="space-y-2">
               <Label htmlFor="password">密码</Label>
-              <Input
-                id="password"
-                type="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                maxLength={72}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
+              <PasswordInput
+              id="password"
+              autoComplete="new-password"
+              placeholder="至少 8 位"
+              value={password}
+              onChange={setPassword}
+            />
               <p className="text-xs text-muted-foreground">至少 8 位</p>
             </div>
 
