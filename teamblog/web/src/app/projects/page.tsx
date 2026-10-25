@@ -4,7 +4,6 @@ import { EmptyState } from "@/components/empty-state";
 import { PageHeader } from "@/components/page-header";
 import { TiltCard } from "@/components/motion/tilt-card";
 import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { serverApi } from "@/lib/server-api";
 
 export const dynamic = "force-dynamic";

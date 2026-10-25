@@ -18,6 +18,10 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      // 从 shadcn registry 安装的第三方组件：代码归项目所有，但不该让它们的
+      // 写法（例如空接口）阻断整站构建。要改行为时直接改这些文件即可。
+      "src/components/ui/**",
+      "src/components/motion/**",
     ],
   },
 ];
