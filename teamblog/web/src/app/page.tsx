@@ -16,6 +16,7 @@ import { TiltCard } from "@/components/motion/tilt-card";
 import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
 import { STATUS_LABEL, VERSIONS } from "@/lib/timeline";
+import { cleanVersionTitle } from "@/lib/version";
 
 /**
  * 强制动态渲染。
@@ -210,7 +211,9 @@ export default async function HomePage() {
             <Link href="/timeline" className="block space-y-3 px-5 py-4">
               <div className="flex flex-wrap items-baseline gap-2">
                 <span className="font-mono text-sm font-semibold">{currentVersion.version}</span>
-                <span className="font-medium">{currentVersion.title}</span>
+                <span className="font-medium">
+                  {cleanVersionTitle(currentVersion.version, currentVersion.title)}
+                </span>
                 <Badge variant="secondary" className="text-xs">
                   当前
                 </Badge>

@@ -2,6 +2,7 @@
 
 import { Timeline, type TimelineEvent } from "@/components/motion/timeline";
 import type { Announcement } from "@/lib/types";
+import { cleanVersionTitle } from "@/lib/version";
 
 /**
  * 横向版本时间轴（方案 C）。
@@ -22,7 +23,8 @@ export function VersionTimeline({ versions }: { versions: Announcement[] }) {
   const events: TimelineEvent[] = ordered.map((item) => ({
     id: item.id,
     date: item.publishedAt.slice(0, 10),
-    title: `${item.version ?? ""} ${item.title}`.trim(),
+    // 标题里可能已经带了版本号，这里去掉避免重复
+    title: [item.version, cleanVersionTitle(item.version, item.title)].filter(Boolean).join(" · "),
     media: (
       <div className="flex h-full flex-col justify-between gap-2 p-3">
         <p className="line-clamp-4 text-xs leading-5 text-muted-foreground">

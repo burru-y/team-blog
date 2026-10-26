@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AiChat } from "@/components/ai-chat";
 import { Comments } from "@/components/comments";
 import { Markdown } from "@/components/markdown";
+import { NoteActions } from "@/components/note-actions";
 import { SummaryGenerator } from "@/components/summary-generator";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
@@ -48,7 +49,10 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
           <span>·</span>
           <time>{log.logDate}</time>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">{log.title}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight">{log.title}</h1>
+          <NoteActions noteId={log.id} ownerUsername={log.ownerUsername} />
+        </div>
         {log.summaryMd ? <p className="text-muted-foreground">{log.summaryMd}</p> : null}
       </header>
 

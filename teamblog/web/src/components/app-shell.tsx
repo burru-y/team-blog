@@ -85,6 +85,7 @@ function isActive(pathname: string, href: string) {
 const SEGMENT_LABEL: Record<string, string> = {
   projects: "成果",
   learning: "笔记",
+  edit: "编辑",
   timeline: "时间线",
   feedback: "留言",
   publish: "发布",

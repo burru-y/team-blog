@@ -6,6 +6,7 @@ import { ChevronDown, Bug, Sparkles, Wrench } from "lucide-react";
 import { Markdown } from "@/components/markdown";
 import { Badge } from "@/components/ui/badge";
 import type { Announcement } from "@/lib/types";
+import { cleanVersionTitle } from "@/lib/version";
 import { cn } from "@/lib/utils";
 
 /**
@@ -107,7 +108,9 @@ export function VersionChangelog({ versions }: { versions: Announcement[] }) {
               className="flex w-full flex-wrap items-baseline gap-2 text-left"
             >
               <span className="font-mono text-base font-semibold">{version.version}</span>
-              <span className="text-sm font-medium">{version.title}</span>
+              <span className="text-sm font-medium">
+                {cleanVersionTitle(version.version, version.title)}
+              </span>
               {index === 0 ? (
                 <Badge variant="secondary" className="text-xs">
                   最新
