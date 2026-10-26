@@ -40,6 +40,9 @@ export default async function HomePage() {
   const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
   // 最新笔记：接口失败不影响首页其他部分
   const notes = await serverApi.listLatestLearningLogs(5).catch(() => []);
+  // 当前版本：取公告里最新的更新日志，失败时退回静态版本表
+  const changelogs = await serverApi.listAnnouncements("CHANGELOG").catch(() => []);
+  const currentVersion = changelogs[0] ?? null;
 
   const checkin = heatmap ? Object.values(heatmap.days).reduce((sum, n) => sum + n, 0) : 0;
   const activeDays = heatmap ? Object.keys(heatmap.days).length : 0;
@@ -198,25 +201,49 @@ export default async function HomePage() {
             href="/timeline"
             className="text-sm text-muted-foreground underline underline-offset-4"
           >
-            开发时间线
+            完整时间线
           </Link>
         </div>
 
-        <div className="space-y-2">
-          {VERSIONS.map((item) => (
-            <TiltCard key={item.version} className="border bg-card" max={3} glare={false}>
-            <div className="flex flex-wrap items-baseline gap-2 px-4 py-3">
-              <span className="font-mono text-sm">{item.version}</span>
-              <span className="font-medium">{item.name}</span>
-              <Badge variant={item.status === "done" ? "secondary" : "outline"}>
-                {STATUS_LABEL[item.status]}
-              </Badge>
-              <span className="text-xs text-muted-foreground">{item.date}</span>
-              <p className="w-full text-xs text-muted-foreground">{item.note}</p>
-            </div>
-            </TiltCard>
-          ))}
-        </div>
+        {currentVersion ? (
+          <TiltCard className="border bg-card" max={3} glare={false}>
+            <Link href="/timeline" className="block space-y-3 px-5 py-4">
+              <div className="flex flex-wrap items-baseline gap-2">
+                <span className="font-mono text-sm font-semibold">{currentVersion.version}</span>
+                <span className="font-medium">{currentVersion.title}</span>
+                <Badge variant="secondary" className="text-xs">
+                  当前
+                </Badge>
+                <time className="text-xs text-muted-foreground">
+                  {new Date(currentVersion.publishedAt).toLocaleDateString("zh-CN", {
+                    timeZone: "Asia/Shanghai",
+                  })}
+                </time>
+              </div>
+              <ul className="space-y-1">
+                {firstBullets(currentVersion.bodyMd, 3).map((line) => (
+                  <li key={line} className="text-xs leading-relaxed text-muted-foreground">
+                    · {line}
+                  </li>
+                ))}
+              </ul>
+              <p className="text-xs text-brand">查看全部更新 →</p>
+            </Link>
+          </TiltCard>
+        ) : (
+          <div className="space-y-2">
+            {VERSIONS.map((item) => (
+              <div key={item.version} className="flex flex-wrap items-baseline gap-2 rounded-lg border px-4 py-3">
+                <span className="font-mono text-sm">{item.version}</span>
+                <span className="font-medium">{item.name}</span>
+                <Badge variant={item.status === "done" ? "secondary" : "outline"}>
+                  {STATUS_LABEL[item.status]}
+                </Badge>
+                <span className="text-xs text-muted-foreground">{item.date}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </section>
     </div>
   );
@@ -231,4 +258,14 @@ function Stat({ label, value, text }: { label: string; value: number | string; t
       </dd>
     </div>
   );
+}
+
+/** 从更新日志正文里取前 N 条改动，首页只展示这几行。 */
+function firstBullets(bodyMd: string, limit: number): string[] {
+  return bodyMd
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("- "))
+    .slice(0, limit)
+    .map((line) => line.slice(2));
 }
