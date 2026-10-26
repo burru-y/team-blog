@@ -18,6 +18,7 @@ services:
       - ../nginx/https.conf:/etc/nginx/conf.d/default.conf:ro
       - ../nginx/certs:/etc/nginx/certs:ro
       - uploads:/var/www/uploads:ro
+      - ../blog:/var/www/blog:ro
 
 volumes:
   pgdata:

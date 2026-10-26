@@ -140,6 +140,8 @@ services:
     volumes:
       - ../nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - uploads:/var/www/uploads:ro
+      # 个人博客静态文件：本地构建后 scp 到 ops/blog
+      - ../blog:/var/www/blog:ro
     healthcheck:
       test: ["CMD-SHELL", "wget -qO- http://127.0.0.1/healthz || exit 1"]
       interval: 15s
