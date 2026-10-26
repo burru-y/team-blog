@@ -1,4 +1,4 @@
-# 构建并发布个人博客到服务器的 /blog 路径
+﻿﻿# 构建并发布个人博客到服务器的 /blog 路径
 #
 #   .\deploy-blog.ps1
 #
@@ -45,7 +45,7 @@ if ($LASTEXITCODE -ne 0) { throw "解压失败" }
 
 Write-Host "`n== 4/4 验证 ==" -ForegroundColor Cyan
 & ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost `
-  "curl -s -o /dev/null -w '/blog/ %{http_code}\n' http://127.0.0.1/blog/"
+  "curl -s -o /dev/null -w '8081 %{http_code}\n' http://127.0.0.1:8081/"
 if ($LASTEXITCODE -ne 0) { throw "验证失败" }
 
-Write-Host "`n已发布：http://$ServerHost/blog/" -ForegroundColor Green
+Write-Host "`n已发布：http://$ServerHost:8081/" -ForegroundColor Green
