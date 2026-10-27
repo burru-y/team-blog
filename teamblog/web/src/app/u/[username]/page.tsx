@@ -11,6 +11,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { toContributions } from "@/lib/contributions";
 import { serverApi } from "@/lib/server-api";
+import { tagChipStyle } from "@/lib/tag-colors";
 
 /** 每次都要最新数据，且构建时不依赖后端（见 app/page.tsx 的说明）。 */
 export const dynamic = "force-dynamic";
@@ -178,11 +179,10 @@ export default async function ProfilePage({
                 <Link
                   key={tag}
                   href={`/u/${profile.username}?tag=${encodeURIComponent(tag)}`}
-                  className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
-                    activeTag === tag
-                      ? "border-brand bg-brand/10 text-brand"
-                      : "text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  className={`rounded-full border px-2.5 py-0.5 text-xs transition-all ${
+                    activeTag === tag ? "ring-1 ring-inset ring-foreground/20" : "hover:opacity-80"
                   }`}
+                  style={tagChipStyle(tag)}
                 >
                   {tag}
                   <span className="ml-1 opacity-60">{count}</span>

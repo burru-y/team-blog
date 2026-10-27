@@ -7,6 +7,7 @@ import {
   Clock3,
   FolderKanban,
   House,
+  NotebookText,
   LogIn,
   LogOut,
   Megaphone,
@@ -36,6 +37,8 @@ import {
   AnimatedSidebarTrigger,
 } from "@/components/motion/animated-sidebar";
 import { AnnouncementNotice } from "@/components/announcement-notice";
+import { AnnouncementBell } from "@/components/announcement-bell";
+import { ThemeToggle } from "@/components/motion/theme-toggle";
 import { UserAvatar } from "@/components/user-avatar";
 import { Button } from "@/components/ui/button";
 import { useSession } from "@/lib/session";
@@ -57,6 +60,7 @@ type NavItem = {
 
 const MAIN_NAV: NavItem[] = [
   { href: "/", label: "首页", icon: <House className="size-4" /> },
+  { href: "/notes", label: "笔记", icon: <NotebookText className="size-4" /> },
   { href: "/projects", label: "成果", icon: <FolderKanban className="size-4" /> },
   { href: "/timeline", label: "时间线", icon: <Clock3 className="size-4" /> },
   { href: "/feedback", label: "留言", icon: <MessageSquare className="size-4" /> },
@@ -83,6 +87,7 @@ function isActive(pathname: string, href: string) {
 
 /** 一级路径 → 中文名。没登记的路径直接用路径本身，不会显示成乱码。 */
 const SEGMENT_LABEL: Record<string, string> = {
+  notes: "笔记",
   projects: "成果",
   learning: "笔记",
   edit: "编辑",
@@ -164,7 +169,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <AnimatedSidebarProvider className="h-svh overflow-hidden bg-background">
+    <AnimatedSidebarProvider className="h-svh overflow-hidden">
       <AnimatedSidebar
         ariaLabel="欲晓 导航"
         collapsible="icon"
@@ -297,13 +302,19 @@ export function AppShell({ children }: { children: ReactNode }) {
         <AnimatedSidebarRail />
       </AnimatedSidebar>
 
-      <AnimatedSidebarInset className="min-h-0 bg-background">
+      <AnimatedSidebarInset className="min-h-0">
         <header className="flex h-16 shrink-0 items-center gap-3 border-border border-b px-4">
           <AnimatedSidebarTrigger className="text-muted-foreground transition-colors hover:bg-muted hover:text-foreground">
             <PanelLeft aria-hidden className="size-4" />
           </AnimatedSidebarTrigger>
           <div className="h-5 w-px bg-border" />
           <Breadcrumbs pathname={pathname} />
+
+          {/* 右侧：主题切换与公告铃铛 */}
+          <div className="ml-auto flex items-center gap-1">
+            <ThemeToggle variant="circle-blur" start="top-right" />
+            <AnnouncementBell />
+          </div>
         </header>
 
         <div className="min-h-0 flex-1 overflow-y-auto">
@@ -312,9 +323,6 @@ export function AppShell({ children }: { children: ReactNode }) {
       </AnimatedSidebarInset>
 
       {/* 有新公告时进站弹一次（按公告 id 记录已读） */}
-      {/* 背景光晕：固定在视口，不随内容滚动 */}
-      <div className="site-backdrop" aria-hidden />
-
       <AnnouncementNotice />
     </AnimatedSidebarProvider>
   );

@@ -15,6 +15,7 @@ import { EmptyState } from "@/components/empty-state";
 import { TiltCard } from "@/components/motion/tilt-card";
 import { Heatmap } from "@/components/heatmap";
 import { serverApi } from "@/lib/server-api";
+import { DigitSwap } from "@/components/motion/number-animation";
 import { STATUS_LABEL, VERSIONS } from "@/lib/timeline";
 import { cleanVersionTitle } from "@/lib/version";
 
@@ -39,8 +40,6 @@ export default async function HomePage() {
   const page = await serverApi.listMembers(undefined, 12);
   // 热力图是团队视角：不给 username。失败不该让首页整页挂掉，所以单独兜住
   const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
-  // 最新笔记：接口失败不影响首页其他部分
-  const notes = await serverApi.listLatestLearningLogs(5).catch(() => []);
   // 当前版本：取公告里最新的更新日志，失败时退回静态版本表
   const changelogs = await serverApi.listAnnouncements("CHANGELOG").catch(() => []);
   const currentVersion = changelogs[0] ?? null;
@@ -169,30 +168,23 @@ export default async function HomePage() {
 
       <section className="space-y-4 border-t pt-6">
         <div className="flex items-baseline justify-between gap-3">
-          <h2 className="text-xl font-semibold tracking-tight">最新笔记</h2>
-          <span className="text-sm text-muted-foreground">{notes.length} 篇</span>
+          <h2 className="text-xl font-semibold tracking-tight">笔记</h2>
+          <Link href="/notes" className="text-sm text-brand hover:underline">
+            查看全部笔记 →
+          </Link>
         </div>
 
-        {notes.length === 0 ? (
-          <EmptyState title="还没有笔记" description="成员写下的学习内容会出现在这里。" />
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {notes.map((note) => (
-              <TiltCard key={note.id} className="border bg-card" max={5} glare={false}>
-                <Link href={`/learning/${note.id}`} className="flex h-full flex-col gap-2 p-5">
-                  <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-                    <span className="truncate">{note.ownerUsername}</span>
-                    <time className="shrink-0">{note.logDate}</time>
-                  </div>
-                  <p className="line-clamp-2 font-medium">{note.title}</p>
-                  <p className="line-clamp-3 flex-1 text-xs leading-relaxed text-muted-foreground">
-                    {note.summaryMd || "（没有摘要，点开看全文）"}
-                  </p>
-                </Link>
-              </TiltCard>
-            ))}
-          </div>
-        )}
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-5 py-4">
+          <p className="text-sm text-muted-foreground">
+            所有成员的学习笔记都在笔记页，可按关键词、标签和作者筛选。
+          </p>
+          <Link
+            href="/notes"
+            className="ml-auto text-sm font-medium text-brand hover:underline"
+          >
+            打开笔记列表 →
+          </Link>
+        </div>
       </section>
 
       <section className="space-y-3 border-t pt-6">
@@ -257,7 +249,7 @@ function Stat({ label, value, text }: { label: string; value: number | string; t
     <div className="space-y-1">
       <dt className="text-xs text-muted-foreground">{label}</dt>
       <dd className={text ? "text-2xl font-semibold" : "text-2xl font-semibold tabular-nums"}>
-        {value}
+        {text ? value : <DigitSwap value={String(value)} />}
       </dd>
     </div>
   );

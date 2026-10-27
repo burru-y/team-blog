@@ -7,6 +7,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { TagPicker, joinTags } from "@/components/tag-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { ApiError, api } from "@/lib/api";
@@ -33,7 +34,7 @@ export default function PublishLearningPage() {
   const [title, setTitle] = useState("");
   const [contentMd, setContentMd] = useState("");
   const [summary, setSummary] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +71,7 @@ export default function PublishLearningPage() {
           title: title.trim(),
           contentMd,
           summaryMd: summary.trim() || null,
-        tags: tags.trim() || null,
+        tags: joinTags(tags),
         },
         token,
       );
@@ -104,15 +105,9 @@ export default function PublishLearningPage() {
 
       <div className="space-y-2">
         <Label htmlFor="tags">标签（可选）</Label>
-        <Input
-          id="tags"
-          value={tags}
-          maxLength={200}
-          placeholder="用逗号分隔，如：后端,部署"
-          onChange={(e) => setTags(e.target.value)}
-        />
-        <p className="text-xs text-muted-foreground">最多 5 个，会出现在个人主页的标签云里。</p>
+        <TagPicker value={tags} onChange={setTags} />
       </div>
+
 
       <div className="space-y-2">
         <Label htmlFor="summary">摘要（可选）</Label>

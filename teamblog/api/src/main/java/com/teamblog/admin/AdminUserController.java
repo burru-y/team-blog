@@ -85,6 +85,35 @@ public class AdminUserController {
         return ApiResponse.ok(null);
     }
 
+    /**
+     * 注销账号（软删除）。
+     *
+     * <p>为什么不物理删除：笔记、评论、积分流水都引用这个用户，
+     * 真删会让历史记录缺主。软删除后账号不能再登录，但内容仍在。
+     *
+     * <p>admin1 是引导账号：任何管理员都不能注销它（包括管理员之间互相操作），
+     * 否则一旦误删就没人能进后台恢复。
+     */
+    @PostMapping("/{id}/deactivate")
+    @Transactional
+    public ApiResponse<Void> deactivate(@AuthenticationPrincipal AuthPrincipal principal,
+                                        @PathVariable UUID id) {
+        if (principal.id().equals(id)) {
+            throw new BusinessException(ErrorCode.RULE_VIOLATED, "不能注销自己");
+        }
+
+        User user = userRepository.findById(id)
+                .filter(candidate -> !candidate.isDeleted())
+                .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
+
+        if ("admin1".equals(user.getUsername())) {
+            throw new BusinessException(ErrorCode.RULE_VIOLATED, "admin1 是引导账号，不可注销");
+        }
+
+        user.softDelete(java.time.OffsetDateTime.now(java.time.ZoneId.of("Asia/Shanghai")));
+        return ApiResponse.ok(null);
+    }
+
     private static Role parseRole(String raw) {
         try {
             return Role.valueOf(raw.trim().toUpperCase(Locale.ROOT));

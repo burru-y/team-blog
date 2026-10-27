@@ -57,6 +57,25 @@ export const serverApi = {
     );
   },
 
+  /**
+   * 笔记筛选（/notes 页）。
+   *
+   * all=true 让后端返回全部匹配项——不带时它只给最新 5 条（首页用）。
+   */
+  listLearningLogsFiltered(params: {
+    q?: string;
+    tag?: string;
+    author?: string;
+  }): Promise<LearningLogResponse[]> {
+    const search = new URLSearchParams({ all: "true" });
+    if (params.q) search.set("q", params.q);
+    if (params.tag) search.set("tag", params.tag);
+    if (params.author) search.set("username", params.author);
+    return request<LearningLogResponse[]>(`/api/v1/learning-logs?${search.toString()}`, {
+      base: ORIGIN,
+    });
+  },
+
   /** 个人页用：按作者筛选（后端 `?author=`），不传则返回全站成果。 */
   listProjects(cursor?: string, limit = 20, author?: string): Promise<ProjectPage> {
     const base = pageQuery(cursor, limit);

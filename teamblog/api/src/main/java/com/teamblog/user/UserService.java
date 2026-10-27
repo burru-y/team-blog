@@ -25,6 +25,13 @@ import java.util.UUID;
 @Service
 public class UserService {
 
+    /**
+     * 引导账号：不对公开展示。
+     *
+     * <p>它是部署时为了进后台而建的，没有个人资料，出现在成员列表里只会让人困惑。
+     */
+    private static final String BOOTSTRAP_USERNAME = "admin1";
+
     private static final int DEFAULT_PAGE_SIZE = 20;
     private static final int MAX_PAGE_SIZE = 100;
 
@@ -74,7 +81,13 @@ public class UserService {
                 ? CursorUtils.encode(page.get(page.size() - 1).getCreatedAt(), page.get(page.size() - 1).getId())
                 : null;
 
-        return PageResponse.of(page.stream().map(UserCardResponse::from).toList(), nextCursor);
+        // 引导账号不在公开列表里出现
+        List<UserCardResponse> cards = page.stream()
+                .filter(user -> !BOOTSTRAP_USERNAME.equals(user.getUsername()))
+                .map(UserCardResponse::from)
+                .toList();
+
+        return PageResponse.of(cards, nextCursor);
     }
 
     /**

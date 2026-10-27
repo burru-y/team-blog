@@ -1,4 +1,6 @@
 import ReactMarkdown from "react-markdown";
+import rehypeKatex from "rehype-katex";
+import remarkMath from "remark-math";
 
 import { headingId } from "@/lib/markdown-outline";
 import remarkGfm from "remark-gfm";
@@ -24,7 +26,9 @@ export function Markdown({ children }: { children: string }) {
   return (
     <div className="prose-teamblog space-y-4 text-sm leading-7">
       <ReactMarkdown
-        remarkPlugins={[remarkGfm]}
+        remarkPlugins={[remarkGfm, remarkMath]}
+        // rehype-katex 只把公式编译成 span/HTML，不会打开原始 HTML 注入
+        rehypePlugins={[rehypeKatex]}
         components={{
           a: ({ href, children: label }) => (
             <a

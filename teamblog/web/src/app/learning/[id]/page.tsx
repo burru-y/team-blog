@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { ApiError } from "@/lib/api";
 import { extractToc, firstImage } from "@/lib/markdown-outline";
 import { serverApi } from "@/lib/server-api";
+import { tagChipStyle } from "@/lib/tag-colors";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +72,8 @@ export default async function LearningLogPage({ params }: { params: Promise<{ id
                 <Link
                   key={tag}
                   href={`/u/${log.ownerUsername}?tag=${encodeURIComponent(tag.trim())}`}
-                  className="rounded-full border px-2 py-0.5 text-xs hover:border-foreground/30 hover:text-foreground"
+                  className="rounded-full border px-2 py-0.5 text-xs transition-opacity hover:opacity-80"
+                  style={tagChipStyle(tag.trim())}
                 >
                   #{tag.trim()}
                 </Link>

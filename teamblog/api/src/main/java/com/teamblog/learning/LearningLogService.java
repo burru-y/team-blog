@@ -138,6 +138,28 @@ public class LearningLogService {
     }
 
     /**
+     * 笔记列表页：关键词 / 标签 / 作者组合筛选。
+     *
+     * <p>参数全部为空时等同于「全部笔记」，所以列表页不需要另开一个接口。
+     * 关键词做了 lower()，中文不受影响，英文大小写不敏感。
+     */
+    @Transactional(readOnly = true)
+    public List<LearningLogResponse> listFiltered(String keyword, String tag, String username) {
+        String normalizedKeyword = isBlank(keyword) ? null : "%" + keyword.trim().toLowerCase() + "%";
+        String normalizedTag = isBlank(tag) ? null : "%" + tag.trim() + "%";
+        UUID userId = null;
+        if (!isBlank(username)) {
+            userId = userRepository.findActiveByUsername(User.normalizeUsername(username))
+                    .map(User::getId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND, "用户不存在"));
+        }
+
+        return learningLogRepository.search(normalizedKeyword, normalizedTag, userId).stream()
+                .map(log -> LearningLogResponse.from(log, usernameOf(log.getUserId())))
+                .toList();
+    }
+
+    /**
      * 生成摘要（不落库）。
      *
      * <p>权限：作者本人或管理员。摘要会读到正文，让别人对他人未定稿的内容生成摘要没有意义。

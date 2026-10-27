@@ -47,10 +47,25 @@ public class LearningLogController {
      *   <li>不带 username：全站最新 limit 条（首页用）</li>
      * </ul>
      */
+    /**
+     * 笔记列表。
+     *
+     * <p>带 q / tag / username 任一筛选参数时走筛选查询（全部笔记）；
+     * 都不带时保持旧行为：返回最新 limit 条。
+     */
     @GetMapping
     public ApiResponse<List<LearningLogResponse>> list(
             @RequestParam(required = false) String username,
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String tag,
+            @RequestParam(required = false) Boolean all,
             @RequestParam(defaultValue = "5") int limit) {
+        boolean filtering = (q != null && !q.isBlank())
+                || (tag != null && !tag.isBlank())
+                || Boolean.TRUE.equals(all);
+        if (filtering) {
+            return ApiResponse.ok(learningLogService.listFiltered(q, tag, username));
+        }
         if (username == null || username.isBlank()) {
             return ApiResponse.ok(learningLogService.listLatest(limit));
         }

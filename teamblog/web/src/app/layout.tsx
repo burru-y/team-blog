@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 
+import { ThemeProvider } from "@/components/theme-provider";
 import { AppShell } from "@/components/app-shell";
 import { SiteFooter } from "@/components/site-footer";
 import { StatusBanner } from "@/components/status-banner";
@@ -18,17 +19,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
+    <html lang="zh-CN" suppressHydrationWarning>
       <body className="antialiased">
         {/* SessionProvider 必须包住外壳与页面：侧栏要读登录态决定显示哪些入口 */}
-        <SessionProvider>
+        {/* ThemeProvider 要在最外层：深色类名必须挂在 html 上，越晚挂越容易闪 */}
+        <ThemeProvider>
+          <SessionProvider>
           <AppShell>
             <StatusBanner />
             {children}
             <SiteFooter />
           </AppShell>
-          <Toaster position="top-center" />
-        </SessionProvider>
+            <Toaster position="top-center" />
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

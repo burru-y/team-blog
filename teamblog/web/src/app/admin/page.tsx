@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
+import { DeleteButton } from "@/components/motion/delete-button";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -130,6 +131,31 @@ function MembersTab({ token, onError }: { token: string; onError: (msg: string |
     }
   }
 
+  /**
+   * 注销账号。
+   *
+   * 二次确认框里把用户名再写一遍，避免点到隔壁那一行。
+   * 后端还会兜一层：admin1 与"注销自己"都会被拒绝。
+   */
+  async function deactivateMember(target: UserResponse) {
+    if (
+      !window.confirm(
+        `确定注销 ${target.username} 吗？注销后该账号无法再登录，此操作不可撤销。`,
+      )
+    ) {
+      return;
+    }
+    setBusyId(target.id);
+    try {
+      await api.deactivateUser(target.id, token);
+      await load();
+    } catch (err) {
+      onError(err instanceof ApiError ? messageFor(err.code) : "注销失败");
+    } finally {
+      setBusyId(null);
+    }
+  }
+
   async function toggleRole(target: UserResponse) {
     const next = target.role === "ADMIN" ? "MEMBER" : "ADMIN";
     if (!window.confirm(`把 ${target.username} 改成${next === "ADMIN" ? "管理员" : "成员"}？对方的登录会立刻失效。`)) {
@@ -181,6 +207,16 @@ function MembersTab({ token, onError }: { token: string; onError: (msg: string |
                 onClick={() => toggleRole(item)}
               >
                 {item.role === "ADMIN" ? "降为成员" : "升为管理员"}
+              </Button>
+              {/* 注销：不可恢复；admin1 由后端拦截，前端仅置灰 */}
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-destructive"
+                disabled={busyId === item.id || item.username === "admin1"}
+                onClick={() => deactivateMember(item)}
+              >
+                注销
               </Button>
             </div>
           </div>
@@ -745,9 +781,11 @@ function AnnouncementsTab({ token, onError }: { token: string; onError: (message
                       {new Date(item.publishedAt).toLocaleDateString("zh-CN")}
                     </p>
                   </div>
-                  <Button size="sm" variant="ghost" disabled={busy} onClick={() => void remove(item.id)}>
-                    删除
-                  </Button>
+                  {/* 删除走通用 DeleteButton：点一下展开确认，避免误删公告 */}
+                  <DeleteButton
+                    onConfirm={() => void remove(item.id)}
+                    className={busy ? "pointer-events-none text-xs opacity-50" : "text-xs"}
+                  />
                 </li>
               ))}
             </ul>

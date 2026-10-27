@@ -1,3 +1,6 @@
+/* KaTeX 公式样式（笔记里的 $...$ 与 $$...$$） */
+@import "katex/dist/katex.min.css";
+
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
@@ -142,6 +145,22 @@
   body {
     @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
+    /*
+     * 背景光晕直接画在 body 上，而不是放一个 z-index:-1 的固定层——
+     * 那种做法会被 body 自己的背景色整块盖住，页面上什么都看不到。
+     * fixed 保证滚动时光晕不跟着走。
+     */
+    background-image:
+      radial-gradient(60rem 42rem at 8% -12%, oklch(0.72 0.16 258 / 0.35), transparent 60%),
+      radial-gradient(52rem 38rem at 96% -6%, oklch(0.78 0.13 200 / 0.3), transparent 58%);
+    background-attachment: fixed;
+    background-repeat: no-repeat;
+  }
+
+  .dark body {
+    background-image:
+      radial-gradient(60rem 42rem at 8% -12%, oklch(0.45 0.12 258 / 0.45), transparent 60%),
+      radial-gradient(52rem 38rem at 96% -6%, oklch(0.44 0.1 200 / 0.38), transparent 58%);
   }
   html {
     @apply font-sans;
@@ -221,24 +240,3 @@
   animation: thinking-dot 1.2s ease-in-out infinite;
 }
 
-/*
- * 页面背景：两团低饱和光晕，固定在视口上。
- *
- * 不用图片：一张背景图在移动端要么被裁、要么拉慢首屏；
- * 渐变是零请求的，也方便跟随深浅色。
- */
-.site-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: -1;
-  pointer-events: none;
-  background:
-    radial-gradient(52rem 34rem at 12% -8%, oklch(0.86 0.07 258 / 0.45), transparent 62%),
-    radial-gradient(44rem 30rem at 92% -4%, oklch(0.88 0.06 200 / 0.35), transparent 58%);
-}
-
-.dark .site-backdrop {
-  background:
-    radial-gradient(52rem 34rem at 12% -8%, oklch(0.42 0.09 258 / 0.35), transparent 62%),
-    radial-gradient(44rem 30rem at 92% -4%, oklch(0.4 0.07 200 / 0.28), transparent 58%);
-}

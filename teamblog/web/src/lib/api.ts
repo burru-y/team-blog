@@ -153,10 +153,29 @@ export const api = {
   },
 
   /** 图片上传：走 multipart，不能手动设 Content-Type（浏览器要自己带 boundary）。 */
+  /** 笔记筛选（与 server-api 同名同参，供客户端调用）。 */
+  listLearningLogsFiltered(
+    params: { q?: string; tag?: string; author?: string } = {},
+  ): Promise<LearningLogResponse[]> {
+    const search = new URLSearchParams({ all: "true" });
+    if (params.q) search.set("q", params.q);
+    if (params.tag) search.set("tag", params.tag);
+    if (params.author) search.set("username", params.author);
+    return request<LearningLogResponse[]>(`/api/v1/learning-logs?${search.toString()}`);
+  },
+
   /** 公告列表（公开）。kind 传 CHANGELOG 只取更新日志。 */
   listAnnouncements(kind?: "CHANGELOG"): Promise<Announcement[]> {
     const query = kind ? `?kind=${kind}` : "";
     return request<Announcement[]>(`/api/v1/announcements${query}`);
+  },
+
+  /** 管理员注销成员账号（软删除，不可恢复）。 */
+  deactivateUser(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/admin/users/${encodeURIComponent(id)}/deactivate`, {
+      method: "POST",
+      token,
+    });
   },
 
   /** 管理员发布公告。 */
