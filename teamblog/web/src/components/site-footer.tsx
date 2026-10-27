@@ -77,10 +77,6 @@ export function SiteFooter() {
             <Link href="/timeline" className="underline underline-offset-4 hover:text-foreground">
               版本时间线
             </Link>
-            {/* 个人博客是独立静态站，挂在同域的 /blog 下 */}
-            <a href="/blog/" className="underline underline-offset-4 hover:text-foreground">
-              个人博客
-            </a>
             <a
               href="https://github.com/burru-y/team-blog"
               target="_blank"
