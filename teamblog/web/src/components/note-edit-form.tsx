@@ -25,12 +25,14 @@ export function NoteEditForm({
   initialTitle,
   initialContent,
   initialSummary,
+  initialTags,
 }: {
   noteId: string;
   ownerUsername: string;
   initialTitle: string;
   initialContent: string;
   initialSummary: string;
+  initialTags?: string | null;
 }) {
   const { user, token, loading } = useSession();
   const router = useRouter();
@@ -38,6 +40,7 @@ export function NoteEditForm({
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [summary, setSummary] = useState(initialSummary);
+  const [tags, setTags] = useState(initialTags ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -83,6 +86,7 @@ export function NoteEditForm({
           title: title.trim(),
           contentMd: content,
           summaryMd: summary.trim() ? summary.trim() : null,
+          tags: tags.trim() ? tags.trim() : null,
         },
         token,
       );
@@ -125,6 +129,17 @@ export function NoteEditForm({
           maxLength={300}
           placeholder="一句话概括，列表页会显示"
           onChange={(event) => setSummary(event.target.value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="tags">标签（可选）</Label>
+        <Input
+          id="tags"
+          value={tags}
+          maxLength={200}
+          placeholder="用逗号分隔，如：后端,部署"
+          onChange={(event) => setTags(event.target.value)}
         />
       </div>
 

@@ -312,6 +312,9 @@ export function AppShell({ children }: { children: ReactNode }) {
       </AnimatedSidebarInset>
 
       {/* 有新公告时进站弹一次（按公告 id 记录已读） */}
+      {/* 背景光晕：固定在视口，不随内容滚动 */}
+      <div className="site-backdrop" aria-hidden />
+
       <AnnouncementNotice />
     </AnimatedSidebarProvider>
   );

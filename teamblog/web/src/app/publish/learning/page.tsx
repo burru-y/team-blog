@@ -33,6 +33,7 @@ export default function PublishLearningPage() {
   const [title, setTitle] = useState("");
   const [contentMd, setContentMd] = useState("");
   const [summary, setSummary] = useState("");
+  const [tags, setTags] = useState("");
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -69,6 +70,7 @@ export default function PublishLearningPage() {
           title: title.trim(),
           contentMd,
           summaryMd: summary.trim() || null,
+        tags: tags.trim() || null,
         },
         token,
       );
@@ -98,6 +100,18 @@ export default function PublishLearningPage() {
       <div className="space-y-2">
         <Label htmlFor="title">标题</Label>
         <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} required />
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="tags">标签（可选）</Label>
+        <Input
+          id="tags"
+          value={tags}
+          maxLength={200}
+          placeholder="用逗号分隔，如：后端,部署"
+          onChange={(e) => setTags(e.target.value)}
+        />
+        <p className="text-xs text-muted-foreground">最多 5 个，会出现在个人主页的标签云里。</p>
       </div>
 
       <div className="space-y-2">

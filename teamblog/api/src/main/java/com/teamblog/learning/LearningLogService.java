@@ -71,7 +71,7 @@ public class LearningLogService {
         LearningLog log = LearningLog.create(userId, type,
                 request.title().trim(), request.contentMd(),
                 isBlank(request.summaryMd()) ? null : request.summaryMd().trim(),
-                today);
+                request.tags(), today);
         learningLogRepository.save(log);
 
         boolean counted = false;
@@ -99,7 +99,8 @@ public class LearningLogService {
         }
 
         log.updateDetails(request.title().trim(), request.contentMd(),
-                isBlank(request.summaryMd()) ? null : request.summaryMd().trim());
+                isBlank(request.summaryMd()) ? null : request.summaryMd().trim(),
+                request.tags());
         return LearningLogResponse.from(log, usernameOf(log.getUserId()));
     }
 

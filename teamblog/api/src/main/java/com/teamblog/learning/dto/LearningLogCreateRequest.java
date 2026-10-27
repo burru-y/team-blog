@@ -13,6 +13,8 @@ public record LearningLogCreateRequest(
         @NotBlank(message = "不能为空") String type,
         @NotBlank(message = "不能为空") @Size(max = 200, message = "最多 200 字") String title,
         @NotBlank(message = "不能为空") String contentMd,
-        String summaryMd
+        String summaryMd,
+        /** 逗号分隔的标签，最多 5 个；服务端会去重与截断。 */
+        @Size(max = 200, message = "标签过长") String tags
 ) {
 }

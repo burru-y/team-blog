@@ -220,3 +220,25 @@
 @utility animate-thinking {
   animation: thinking-dot 1.2s ease-in-out infinite;
 }
+
+/*
+ * 页面背景：两团低饱和光晕，固定在视口上。
+ *
+ * 不用图片：一张背景图在移动端要么被裁、要么拉慢首屏；
+ * 渐变是零请求的，也方便跟随深浅色。
+ */
+.site-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(52rem 34rem at 12% -8%, oklch(0.86 0.07 258 / 0.45), transparent 62%),
+    radial-gradient(44rem 30rem at 92% -4%, oklch(0.88 0.06 200 / 0.35), transparent 58%);
+}
+
+.dark .site-backdrop {
+  background:
+    radial-gradient(52rem 34rem at 12% -8%, oklch(0.42 0.09 258 / 0.35), transparent 62%),
+    radial-gradient(44rem 30rem at 92% -4%, oklch(0.4 0.07 200 / 0.28), transparent 58%);
+}

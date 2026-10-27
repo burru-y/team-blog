@@ -7,6 +7,7 @@ import jakarta.validation.constraints.Size;
 public record LearningLogUpdateRequest(
         @NotBlank(message = "不能为空") @Size(max = 200, message = "最多 200 字") String title,
         @NotBlank(message = "不能为空") String contentMd,
-        String summaryMd
+        String summaryMd,
+        @Size(max = 200, message = "标签过长") String tags
 ) {
 }

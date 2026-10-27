@@ -24,9 +24,16 @@ export const dynamic = "force-dynamic";
  * 文章 = 学习笔记。项目成果另列，因为它们的阅读预期不同：
  * 笔记是「一段时间内的记录」，成果是「一个可交付的东西」。
  */
-export default async function ProfilePage({ params }: { params: Promise<{ username: string }> }) {
-  // Next 15：params 是 Promise，必须 await
+export default async function ProfilePage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ tag?: string }>;
+}) {
+  // Next 15：params 和 searchParams 都是 Promise，必须 await
   const { username } = await params;
+  const { tag: activeTag } = await searchParams;
 
   let profile;
   try {
@@ -51,6 +58,28 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
     month: "long",
   });
   const checkinDays = heatmap ? Object.keys(heatmap.days).length : 0;
+
+  // 标签云：统计每个标签的篇数，按篇数倒序
+  const tagCounts = new Map<string, number>();
+  for (const log of logs) {
+    for (const raw of (log.tags ?? "").split(",")) {
+      const tag = raw.trim();
+      if (tag) {
+        tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+      }
+    }
+  }
+  const tags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+
+  // 选中标签时只显示该标签的文章
+  const visibleLogs = activeTag
+    ? logs.filter((log) =>
+        (log.tags ?? "")
+          .split(",")
+          .map((item) => item.trim())
+          .includes(activeTag),
+      )
+    : logs;
   const name = profile.displayName ?? profile.username;
 
   return (
@@ -134,12 +163,42 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
       <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
         {/* 主列：文章流 */}
         <div className="min-w-0 space-y-6">
+          {tags.length > 0 ? (
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs text-muted-foreground">标签</span>
+              <Link
+                href={`/u/${profile.username}`}
+                className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+                  activeTag ? "text-muted-foreground hover:text-foreground" : "border-brand text-brand"
+                }`}
+              >
+                全部
+              </Link>
+              {tags.map(([tag, count]) => (
+                <Link
+                  key={tag}
+                  href={`/u/${profile.username}?tag=${encodeURIComponent(tag)}`}
+                  className={`rounded-full border px-2.5 py-0.5 text-xs transition-colors ${
+                    activeTag === tag
+                      ? "border-brand bg-brand/10 text-brand"
+                      : "text-muted-foreground hover:border-foreground/30 hover:text-foreground"
+                  }`}
+                >
+                  {tag}
+                  <span className="ml-1 opacity-60">{count}</span>
+                </Link>
+              ))}
+            </div>
+          ) : null}
+
           <div className="flex items-baseline justify-between gap-3">
             <h2 className="text-lg font-semibold tracking-tight">文章</h2>
-            <span className="text-xs text-muted-foreground">共 {logs.length} 篇</span>
+            <span className="text-xs text-muted-foreground">
+              {activeTag ? `${activeTag} · ${visibleLogs.length} 篇` : `共 ${logs.length} 篇`}
+            </span>
           </div>
 
-          {logs.length === 0 ? (
+          {visibleLogs.length === 0 ? (
             <div className="rounded-xl border border-dashed px-6 py-12 text-center">
               <p className="text-sm font-medium">还没有写文章</p>
               <p className="mt-1 text-xs text-muted-foreground">
@@ -148,9 +207,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             </div>
           ) : (
             <ul className="divide-y">
-              {logs.map((log) => (
+              {visibleLogs.map((log) => (
                 <li key={log.id}>
-                  <Link href={`/learning/${log.id}`} className="group block py-5">
+                  {/* 悬停：整行轻微右移 + 背景浮现 + 左侧强调条，比只变标题颜色更容易感知 */}
+                  <Link
+                    href={`/learning/${log.id}`}
+                    className="group relative block rounded-lg px-3 py-5 transition-all duration-200 hover:translate-x-1 hover:bg-muted/40"
+                  >
+                    <span
+                      aria-hidden
+                      className="absolute top-5 bottom-5 left-0 w-0.5 origin-top scale-y-0 rounded bg-brand transition-transform duration-200 group-hover:scale-y-100"
+                    />
                     <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                       <time className="tabular-nums">{log.logDate}</time>
                       <Badge variant={log.type === "CODE" ? "secondary" : "outline"} className="text-xs">

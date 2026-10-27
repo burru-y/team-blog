@@ -922,11 +922,15 @@ export interface components {
             title: string;
             contentMd: string;
             summaryMd?: string | null;
+            /** @description 逗号分隔的标签，最多 5 个 */
+            tags?: string | null;
         };
         LearningLogUpdateRequest: {
             title: string;
             contentMd: string;
             summaryMd?: string | null;
+            /** @description 逗号分隔的标签，最多 5 个 */
+            tags?: string | null;
         };
         LearningLogResponse: {
             /** Format: uuid */
@@ -936,6 +940,8 @@ export interface components {
             title?: string;
             contentMd?: string;
             summaryMd?: string | null;
+            /** @description 逗号分隔的标签 */
+            tags: string | null;
             /** Format: date */
             logDate?: string;
             /** Format: date-time */

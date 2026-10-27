@@ -12,6 +12,8 @@ public record LearningLogResponse(
         String title,
         String contentMd,
         String summaryMd,
+        /** 逗号分隔的标签，没有则为空。 */
+        String tags,
         LocalDate logDate,
         OffsetDateTime createdAt,
         String ownerUsername
@@ -24,6 +26,7 @@ public record LearningLogResponse(
                 log.getTitle(),
                 log.getContentMd(),
                 log.getSummaryMd(),
+                log.getTags(),
                 log.getLogDate(),
                 log.getCreatedAt(),
                 ownerUsername);

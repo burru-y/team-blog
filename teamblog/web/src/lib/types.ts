@@ -56,6 +56,8 @@ export type LearningLogBody = {
   title: string;
   contentMd: string;
   summaryMd?: string | null;
+  /** 逗号分隔的标签，最多 5 个 */
+  tags?: string | null;
 };
 
 export type RegisterRequest = components["schemas"]["RegisterRequest"];

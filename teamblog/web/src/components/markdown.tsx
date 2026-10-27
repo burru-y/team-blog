@@ -1,4 +1,6 @@
 import ReactMarkdown from "react-markdown";
+
+import { headingId } from "@/lib/markdown-outline";
 import remarkGfm from "remark-gfm";
 
 /**
@@ -41,8 +43,16 @@ export function Markdown({ children }: { children: string }) {
             <code className={className ?? "rounded bg-muted px-1 py-0.5 text-xs"}>{text}</code>
           ),
           h1: ({ children: t }) => <h1 className="mt-6 text-2xl font-semibold">{t}</h1>,
-          h2: ({ children: t }) => <h2 className="mt-6 text-xl font-semibold">{t}</h2>,
-          h3: ({ children: t }) => <h3 className="mt-4 text-lg font-semibold">{t}</h3>,
+          h2: ({ children: t }) => (
+            <h2 id={headingId(textOf(t))} className="mt-6 scroll-mt-24 text-xl font-semibold">
+              {t}
+            </h2>
+          ),
+          h3: ({ children: t }) => (
+            <h3 id={headingId(textOf(t))} className="mt-4 scroll-mt-24 text-lg font-semibold">
+              {t}
+            </h3>
+          ),
           ul: ({ children: t }) => <ul className="list-disc space-y-1 pl-6">{t}</ul>,
           ol: ({ children: t }) => <ol className="list-decimal space-y-1 pl-6">{t}</ol>,
           blockquote: ({ children: t }) => (
@@ -63,4 +73,26 @@ export function Markdown({ children }: { children: string }) {
       </ReactMarkdown>
     </div>
   );
+}
+
+/**
+ * 标题的 ReactNode → 纯文本。
+ *
+ * 标题里可能有行内代码（`useEffect`），直接 String(children) 会得到 "object Object"，
+ * 生成的锚点就对不上目录。
+ */
+function textOf(node: React.ReactNode): string {
+  if (node === null || node === undefined || typeof node === "boolean") {
+    return "";
+  }
+  if (typeof node === "string" || typeof node === "number") {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(textOf).join("");
+  }
+  if (typeof node === "object" && "props" in node) {
+    return textOf((node as { props?: { children?: React.ReactNode } }).props?.children);
+  }
+  return "";
 }

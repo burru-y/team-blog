@@ -42,6 +42,9 @@ public class LearningLog {
     @Column(name = "content_md", nullable = false)
     private String contentMd;
 
+    @Column(length = 200)
+    private String tags;
+
     @Column(name = "summary_md")
     private String summaryMd;
 
@@ -57,7 +60,7 @@ public class LearningLog {
     private OffsetDateTime createdAt;
 
     public static LearningLog create(UUID userId, LearningLogType type, String title,
-                                     String contentMd, String summaryMd, LocalDate logDate) {
+                                     String contentMd, String summaryMd, String tags, LocalDate logDate) {
         LearningLog log = new LearningLog();
         log.id = UuidUtils.v7();
         log.userId = Objects.requireNonNull(userId, "userId 不能为空");
@@ -65,6 +68,7 @@ public class LearningLog {
         log.title = Objects.requireNonNull(title, "title 不能为空");
         log.contentMd = Objects.requireNonNull(contentMd, "contentMd 不能为空");
         log.summaryMd = summaryMd;
+        log.tags = normalizeTags(tags);
         log.logDate = Objects.requireNonNull(logDate, "logDate 不能为空");
         return log;
     }
@@ -74,10 +78,42 @@ public class LearningLog {
         this.summaryMd = summary;
     }
 
-    public void updateDetails(String title, String contentMd, String summaryMd) {
+    public void updateDetails(String title, String contentMd, String summaryMd, String tags) {
         this.title = Objects.requireNonNull(title, "title 不能为空");
         this.contentMd = Objects.requireNonNull(contentMd, "contentMd 不能为空");
         this.summaryMd = summaryMd;
+        this.tags = normalizeTags(tags);
+    }
+
+    /**
+     * 标签归一化：去空白、去重、最多 5 个、总长不超过列宽。
+     *
+     * <p>存成逗号分隔字符串，所以必须在这里拦住重复与超长——
+     * 否则标签云里会出现「Java」和「java 」两个条目。
+     */
+    static String normalizeTags(String raw) {
+        if (raw == null || raw.isBlank()) {
+            return null;
+        }
+        var seen = new java.util.LinkedHashSet<String>();
+        for (String piece : raw.split("[,，]")) {
+            String tag = piece.trim();
+            if (tag.isEmpty()) {
+                continue;
+            }
+            if (tag.length() > 20) {
+                tag = tag.substring(0, 20);
+            }
+            seen.add(tag);
+            if (seen.size() >= 5) {
+                break;
+            }
+        }
+        return seen.isEmpty() ? null : String.join(",", seen);
+    }
+
+    public String getTags() {
+        return tags;
     }
 
     public boolean isOwnedBy(UUID candidate) {

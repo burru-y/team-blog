@@ -215,7 +215,7 @@ class LearningLogIntegrationTest {
     }
 
     private static LearningLogCreateRequest aNote(String title) {
-        return new LearningLogCreateRequest("NOTE", title, "# 正文", null);
+        return new LearningLogCreateRequest("NOTE", title, "# 正文", null, null);
     }
 
     private User persistUser(String prefix) {

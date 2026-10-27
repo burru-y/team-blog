@@ -213,7 +213,7 @@ export const api = {
 
   updateLearningLog(
     id: string,
-    body: { title: string; contentMd: string; summaryMd: string | null },
+    body: { title: string; contentMd: string; summaryMd: string | null; tags?: string | null },
     token: string,
   ): Promise<LearningLogResponse> {
     return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, {

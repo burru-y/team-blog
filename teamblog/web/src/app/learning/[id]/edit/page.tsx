@@ -29,6 +29,7 @@ export default async function EditNotePage({ params }: { params: Promise<{ id: s
       initialTitle={log.title}
       initialContent={log.contentMd ?? ""}
       initialSummary={log.summaryMd ?? ""}
+      initialTags={log.tags}
     />
   );
 }
