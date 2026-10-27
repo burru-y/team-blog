@@ -47,7 +47,10 @@ Step "上传到 $ServerHost"
 if ($LASTEXITCODE -ne 0) { throw "上传失败" }
 
 Step "解压覆盖"
-& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "cd /root && unzip -oq team-blog-src.zip && echo 解压完成"
+# 先删掉远端的源码目录：unzip 只会覆盖同名文件，本地删掉的文件在服务器上会残留。
+# 之前就因为这个残留了一份重复的 V2 迁移，Flyway 直接起不来。
+& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost `
+  "rm -rf /root/teamblog/api/src /root/teamblog/web/src /root/teamblog/ai/app && cd /root && unzip -oq team-blog-src.zip && echo 解压完成"
 if ($LASTEXITCODE -ne 0) { throw "解压失败" }
 
 if ($UploadOnly) {

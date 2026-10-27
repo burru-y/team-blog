@@ -124,6 +124,8 @@ export const api = {
     payload: {
       avatarUrl?: string;
       bio?: string;
+      /** 个人博客地址，填了在个人主页显示 */
+      blogUrl?: string;
       githubUrl?: string;
       emailPublic?: boolean;
       displayName?: string;

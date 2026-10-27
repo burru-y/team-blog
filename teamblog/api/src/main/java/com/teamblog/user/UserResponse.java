@@ -25,6 +25,8 @@ public record UserResponse(
         String avatarUrl,
         String bio,
         String githubUrl,
+        /** 个人博客地址，为空表示没填。 */
+        String blogUrl,
         boolean emailPublic,
         int totalPoints,
         /** 等级由总分推导（LevelCalculator）。放在后端算，前端就不必复制一份阈值表。 */
@@ -54,6 +56,7 @@ public record UserResponse(
                 user.getAvatarUrl(),
                 user.getBio(),
                 user.getGithubUrl(),
+                user.getBlogUrl(),
                 user.isEmailPublic(),
                 user.getTotalPoints(),
                 LevelCalculator.levelOf(user.getTotalPoints()),

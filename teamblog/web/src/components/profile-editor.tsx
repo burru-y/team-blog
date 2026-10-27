@@ -34,6 +34,7 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
   const [username, setUsername] = useState(profile.username);
   const [bio, setBio] = useState(profile.bio ?? "");
   const [githubUrl, setGithubUrl] = useState(profile.githubUrl ?? "");
+  const [blogUrl, setBlogUrl] = useState(profile.blogUrl ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
   const [emailPublic, setEmailPublic] = useState(profile.emailPublic ?? false);
 
@@ -56,7 +57,10 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
     setSaving(true);
     setError(null);
     try {
-      await api.updateProfile({ displayName, username, bio, githubUrl, avatarUrl, emailPublic }, token);
+      await api.updateProfile(
+      { displayName, username, bio, githubUrl, blogUrl, avatarUrl, emailPublic },
+      token,
+    );
       setOpen(false);
       router.refresh();
     } catch (err) {
@@ -138,6 +142,19 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
                 placeholder="https://github.com/your-name"
                 onChange={(event) => setGithubUrl(event.target.value)}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="blogUrl">个人博客</Label>
+              <Input
+                id="blogUrl"
+                value={blogUrl}
+                placeholder="https://example.com"
+                onChange={(event) => setBlogUrl(event.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                填了会在你的个人主页显示为链接，留空则不显示。
+              </p>
             </div>
 
             <div className="space-y-2">

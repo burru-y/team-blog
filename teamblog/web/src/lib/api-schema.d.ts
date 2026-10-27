@@ -723,6 +723,8 @@ export interface components {
             description: string;
             /** @description PROJECT 必填；CERTIFICATE/AWARD 与 imageUrl 二者其一 */
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             /** @description PROJECT 必填 */
             contentMd?: string | null;
             imageUrl?: string | null;
@@ -731,6 +733,8 @@ export interface components {
             title: string;
             description: string;
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             contentMd?: string | null;
             imageUrl?: string | null;
         };
@@ -742,6 +746,8 @@ export interface components {
             title?: string;
             description?: string;
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             contentMd?: string | null;
             imageUrl?: string | null;
             ownerUsername?: string;
@@ -757,6 +763,8 @@ export interface components {
             description?: string;
             imageUrl?: string | null;
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             ownerUsername?: string;
             /** Format: date-time */
             createdAt?: string;
@@ -879,6 +887,8 @@ export interface components {
             avatarUrl?: string | null;
             bio?: string | null;
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             emailPublic?: boolean | null;
             displayName?: string | null;
             /** @description 登录名，同时是 /u/{username} 的路由段；修改后旧链接失效 */
@@ -897,6 +907,8 @@ export interface components {
             avatarUrl?: string | null;
             bio?: string | null;
             githubUrl?: string | null;
+            /** @description 个人博客地址，为空表示没填 */
+            blogUrl?: string | null;
             emailPublic?: boolean;
             totalPoints?: number;
             /** @description 由总分推导的等级（0/50/150/300/600 分界） */

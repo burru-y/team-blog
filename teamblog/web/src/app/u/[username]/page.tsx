@@ -93,6 +93,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
                 {profile.githubUrl}
               </a>
             ) : null}
+            {profile.blogUrl ? (
+              <p className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
+                <span>个人博客：</span>
+                <a
+                  href={profile.blogUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-brand underline underline-offset-4 hover:opacity-80"
+                >
+                  {profile.blogUrl.replace(/^https?:\/\//, "")}
+                </a>
+              </p>
+            ) : null}
             {profile.email ? <p className="text-muted-foreground">邮箱：{profile.email}</p> : null}
           </CardContent>
         </Card>

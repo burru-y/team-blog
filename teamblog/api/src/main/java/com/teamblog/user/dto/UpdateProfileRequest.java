@@ -21,6 +21,11 @@ public record UpdateProfileRequest(
         @Size(max = 500, message = "简介不能超过 500 字")
         String bio,
 
+        /** 个人博客地址：填了才在个人主页显示为链接。 */
+        @Size(max = 300, message = "博客地址过长")
+        @Pattern(regexp = "^$|^https?://.+", message = "博客地址必须是 http(s) 链接")
+        String blogUrl,
+
         @Size(max = 255, message = "链接过长")
         @Pattern(regexp = "^$|^https?://.+", message = "链接必须是 http(s) 地址")
         String githubUrl,

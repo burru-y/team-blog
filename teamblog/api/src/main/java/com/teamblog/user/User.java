@@ -64,6 +64,9 @@ public class User {
     private String githubUrl;
 
     /** 显示名（昵称）。为空时接口回退到 username。 */
+    @Column(name = "blog_url", length = 300)
+    private String blogUrl;
+
     @Column(name = "display_name", length = 30)
     private String displayName;
 
@@ -140,11 +143,12 @@ public class User {
         return deletedAt != null;
     }
 
-    public void updateProfile(String avatarUrl, String bio, String githubUrl, boolean emailPublic,
-                              String displayName) {
+    public void updateProfile(String avatarUrl, String bio, String githubUrl, String blogUrl,
+                              boolean emailPublic, String displayName) {
         this.avatarUrl = avatarUrl;
         this.bio = bio;
         this.githubUrl = githubUrl;
+        this.blogUrl = blogUrl;
         this.emailPublic = emailPublic;
         this.displayName = displayName;
     }
@@ -157,6 +161,10 @@ public class User {
      *
      * <p>不动 tokenVersion：JWT 的 sub 是用户 id，改名不影响已签发的令牌。
      */
+    public String getBlogUrl() {
+        return blogUrl;
+    }
+
     public void rename(String newUsername) {
         this.username = normalizeUsername(newUsername);
     }
