@@ -40,6 +40,8 @@ export default async function HomePage() {
   const page = await serverApi.listMembers(undefined, 12);
   // 热力图是团队视角：不给 username。失败不该让首页整页挂掉，所以单独兜住
   const heatmap = await serverApi.getHeatmap(undefined, 119).catch(() => null);
+  // 最新笔记：首页只放 4 篇，完整列表在 /notes
+  const latestNotes = await serverApi.listLatestLearningLogs(4).catch(() => []);
   // 当前版本：取公告里最新的更新日志，失败时退回静态版本表
   const changelogs = await serverApi.listAnnouncements("CHANGELOG").catch(() => []);
   const currentVersion = changelogs[0] ?? null;
@@ -175,17 +177,26 @@ export default async function HomePage() {
           </Link>
         </div>
 
-        <div className="flex flex-wrap items-center gap-3 rounded-xl border bg-card px-5 py-4">
-          <p className="text-sm text-muted-foreground">
-            所有成员的学习笔记都在笔记页，可按关键词、标签和作者筛选。
-          </p>
-          <Link
-            href="/notes"
-            className="ml-auto text-sm font-medium text-brand hover:underline"
-          >
-            打开笔记列表 →
-          </Link>
-        </div>
+        {latestNotes.length === 0 ? (
+          <EmptyState title="还没有笔记" description="成员写下的学习内容会出现在这里。" />
+        ) : (
+          <ul className="divide-y rounded-xl border">
+            {latestNotes.map((note) => (
+              <li key={note.id}>
+                <Link
+                  href={`/learning/${note.id}`}
+                  className="group flex flex-wrap items-baseline gap-x-3 gap-y-1 px-5 py-3.5 transition-colors hover:bg-muted/40"
+                >
+                  <span className="min-w-0 flex-1 truncate text-sm font-medium group-hover:text-brand">
+                    {note.title}
+                  </span>
+                  <span className="text-xs text-muted-foreground">{note.ownerUsername}</span>
+                  <time className="text-xs text-muted-foreground tabular-nums">{note.logDate}</time>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="space-y-3 border-t pt-6">
