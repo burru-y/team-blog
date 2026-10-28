@@ -7,7 +7,17 @@ import { Button } from "@/components/ui/button";
 import { UploadQueue } from "@/components/upload-queue";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
-import { ColorPicker } from "@/components/motion/color-picker";
+import {
+  ColorPicker,
+  ColorPickerArea,
+  ColorPickerContent,
+  ColorPickerHexInput,
+  ColorPickerHue,
+  ColorPickerPreset,
+  ColorPickerPresets,
+  ColorPickerSwatch,
+  ColorPickerTrigger,
+} from "@/components/motion/color-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
@@ -171,7 +181,28 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
             <div className="space-y-2">
               <Label>名片强调色</Label>
               <div className="flex items-center gap-3">
-                <ColorPicker value={accentColor || "#5b8def"} onValueChange={setAccentColor} />
+                {/*
+                 * ColorPicker 本身只提供上下文，必须显式给触发器与面板——
+                 * 只传 value/onChange 时它渲染的是空内容，所以点了没反应。
+                 */}
+                <ColorPicker value={accentColor || "#5b8def"} onValueChange={setAccentColor}>
+                  <ColorPickerTrigger className="flex items-center gap-2 rounded-lg border px-2 py-1.5 text-xs">
+                    <ColorPickerSwatch className="size-5 rounded" />
+                    <span className="font-mono">{accentColor || "#5b8def"}</span>
+                  </ColorPickerTrigger>
+                  <ColorPickerContent>
+                    <ColorPickerArea />
+                    <ColorPickerHue />
+                    <ColorPickerHexInput />
+                    <ColorPickerPresets>
+                      {["#5b8def", "#22c55e", "#f59e0b", "#ef4444", "#a855f7", "#14b8a6"].map(
+                        (preset) => (
+                          <ColorPickerPreset key={preset} value={preset} label={preset} />
+                        ),
+                      )}
+                    </ColorPickerPresets>
+                  </ColorPickerContent>
+                </ColorPicker>
                 <span className="text-xs text-muted-foreground">
                   {accentColor || "未设置（默认品牌色）"}
                 </span>
