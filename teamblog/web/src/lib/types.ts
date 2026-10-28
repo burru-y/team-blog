@@ -161,3 +161,11 @@ export type Announcement = {
   pinned: boolean;
   publishedAt: string;
 };
+
+/** 个人待办。 */
+export type TodoItem = {
+  id: string;
+  label: string;
+  done: boolean;
+  createdAt: string;
+};

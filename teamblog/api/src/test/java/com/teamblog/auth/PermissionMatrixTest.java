@@ -164,6 +164,17 @@ class PermissionMatrixTest {
                 new Case(HttpMethod.GET, "/api/v1/checkins/status", Role.MEMBER, 200),
 
                 // 需要登录：上传（图片落盘 / 代码转 Markdown）
+                // 个人待办：主页公开读，写需要登录
+                new Case(HttpMethod.GET, "/api/v1/users/{username}/todos", null, 200),
+                new Case(HttpMethod.GET, "/api/v1/me/todos", null, 401),
+                new Case(HttpMethod.POST, "/api/v1/me/todos", null, 401),
+                // 已登录但请求体为空 → 400（说明授权已通过，卡在参数校验）
+                new Case(HttpMethod.POST, "/api/v1/me/todos", Role.MEMBER, 400),
+                new Case(HttpMethod.PATCH, "/api/v1/me/todos/{id}", null, 401),
+                new Case(HttpMethod.PATCH, "/api/v1/me/todos/{id}", Role.MEMBER, 404),
+                new Case(HttpMethod.DELETE, "/api/v1/me/todos/{id}", null, 401),
+                new Case(HttpMethod.DELETE, "/api/v1/me/todos/{id}", Role.MEMBER, 404),
+                new Case(HttpMethod.DELETE, "/api/v1/me/todos", null, 401),
                 // 注销账号：仅管理员
                 new Case(HttpMethod.POST, "/api/v1/admin/users/{id}/deactivate", null, 401),
                 new Case(HttpMethod.POST, "/api/v1/admin/users/{id}/deactivate", Role.MEMBER, 403),

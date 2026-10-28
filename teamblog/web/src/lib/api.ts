@@ -1,5 +1,6 @@
 import type {
   AdminFeedback,
+  TodoItem,
   Announcement,
   HelpFile,
   AdminProject,
@@ -162,6 +163,43 @@ export const api = {
     if (params.tag) search.set("tag", params.tag);
     if (params.author) search.set("username", params.author);
     return request<LearningLogResponse[]>(`/api/v1/learning-logs?${search.toString()}`);
+  },
+
+  /** 某个人的待办（公开，主页展示）。 */
+  listUserTodos(username: string): Promise<TodoItem[]> {
+    return request<TodoItem[]>(`/api/v1/users/${encodeURIComponent(username)}/todos`);
+  },
+
+  /** 我的待办。 */
+  listMyTodos(token: string): Promise<TodoItem[]> {
+    return request<TodoItem[]>("/api/v1/me/todos", { token });
+  },
+
+  createTodo(label: string, token: string): Promise<TodoItem> {
+    return request<TodoItem>("/api/v1/me/todos", {
+      method: "POST",
+      token,
+      body: JSON.stringify({ label }),
+    });
+  },
+
+  toggleTodo(id: string, token: string): Promise<TodoItem> {
+    return request<TodoItem>(`/api/v1/me/todos/${encodeURIComponent(id)}`, {
+      method: "PATCH",
+      token,
+    });
+  },
+
+  deleteTodo(id: string, token: string): Promise<null> {
+    return request<null>(`/api/v1/me/todos/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      token,
+    });
+  },
+
+  /** 清空已完成，返回删除条数。 */
+  clearDoneTodos(token: string): Promise<number> {
+    return request<number>("/api/v1/me/todos", { method: "DELETE", token });
   },
 
   /** 公告列表（公开）。kind 传 CHANGELOG 只取更新日志。 */

@@ -4,6 +4,7 @@ import { CalendarDays, Code2, Link2, Mail } from "lucide-react";
 
 import { ActivityCard } from "@/components/activity-card";
 import { ProfileEditor } from "@/components/profile-editor";
+import { TodoCard } from "@/components/todo-card";
 import { UserAvatar } from "@/components/user-avatar";
 import { TiltCard } from "@/components/motion/tilt-card";
 import { Badge } from "@/components/ui/badge";
@@ -46,12 +47,13 @@ export default async function ProfilePage({
     throw error;
   }
 
-  const [logs, heatmap, projects] = await Promise.all([
+  const [logs, heatmap, projects, todos] = await Promise.all([
     serverApi.listLearningLogs(profile.username),
     serverApi.getHeatmap(profile.username, 365).catch(() => null),
     serverApi
       .listProjects(undefined, 100, profile.username)
       .catch(() => ({ items: [], nextCursor: null })),
+    serverApi.listUserTodos(profile.username).catch(() => []),
   ]);
 
   const joined = new Date(profile.createdAt).toLocaleDateString("zh-CN", {
@@ -241,6 +243,9 @@ export default async function ProfilePage({
 
         {/* 侧栏：成果 + 打卡 */}
         <aside className="space-y-6">
+          {/* 待办：本人可编辑，访客只读 */}
+          <TodoCard username={profile.username} initialTodos={todos} />
+
           <section className="space-y-3">
             <h2 className="text-sm font-semibold tracking-tight">成果</h2>
             {projects.items.length === 0 ? (

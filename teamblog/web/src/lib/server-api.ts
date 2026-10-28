@@ -1,6 +1,7 @@
 import { pageQuery, request } from "./api";
 import type {
   Announcement,
+  TodoItem,
   HelpFile,
   CommentResponse,
   HeatmapResponse,
@@ -30,6 +31,13 @@ export const serverApi = {
 
   getLearningLog(id: string): Promise<LearningLogResponse> {
     return request<LearningLogResponse>(`/api/v1/learning-logs/${encodeURIComponent(id)}`, { base: ORIGIN });
+  },
+
+  /** 某个人的待办（主页用）。 */
+  listUserTodos(username: string): Promise<TodoItem[]> {
+    return request<TodoItem[]>(`/api/v1/users/${encodeURIComponent(username)}/todos`, {
+      base: ORIGIN,
+    });
   },
 
   /** 公告列表（公告页）。 */
