@@ -127,7 +127,11 @@ export default async function HomePage() {
             {page.items.map((member) => {
               const name = member.displayName ?? member.username;
               return (
-                <TiltCard key={member.id} className="border bg-card">
+                <TiltCard
+                  key={member.id}
+                  className="border bg-card"
+                  glowColor={member.accentColor ?? undefined}
+                >
                   <Link href={`/u/${member.username}`} className="block p-5">
                     <div className="flex items-center gap-3">
                       <UserAvatar name={name} avatarUrl={member.avatarUrl} className="size-11" />

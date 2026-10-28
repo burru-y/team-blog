@@ -714,6 +714,10 @@ export interface components {
             role?: "ADMIN" | "MEMBER";
             avatarUrl?: string | null;
             bio?: string | null;
+            /** @description 名片强调色，未设置为空 */
+            accentColor?: string | null;
+            /** @description 个人博客地址 */
+            blogUrl?: string | null;
             totalPoints?: number;
         };
         ProjectCreateRequest: {

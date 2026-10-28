@@ -88,7 +88,12 @@ export default async function ProfilePage({
   return (
     <div className="space-y-10">
       {/* 作者区：头像、名字、简介、外链与数据 */}
-      <header className="space-y-5 border-b pb-8">
+      <TiltCard
+        className="border bg-card/60 p-5 sm:p-6"
+        max={3}
+        glowColor={profile.accentColor ?? undefined}
+      >
+      <header className="space-y-5">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
             {/* 头像外圈用名片强调色；没设置就退回默认描边 */}
@@ -180,6 +185,7 @@ export default async function ProfilePage({
           ))}
         </dl>
       </header>
+      </TiltCard>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
         {/* 主列：文章流 */}

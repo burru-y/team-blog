@@ -17,6 +17,8 @@ public record UserCardResponse(
         String role,
         String avatarUrl,
         String bio,
+        /** 名片强调色，首页成员卡用它给跟随光标的光晕上色。 */
+        String accentColor,
         int totalPoints
 ) {
 
@@ -30,6 +32,7 @@ public record UserCardResponse(
                 user.getRole().name(),
                 user.getAvatarUrl(),
                 user.getBio(),
+                user.getAccentColor(),
                 user.getTotalPoints());
     }
 }

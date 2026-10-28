@@ -30,10 +30,21 @@ export interface TiltCardProps {
   max?: number;
   /** 是否显示跟随光标的反光 */
   glare?: boolean;
+  /**
+   * 反光颜色。默认取 --foreground（浅色下是黑、深色下是白），
+   * 传了名片强调色后，跟随光标的那团光就是本人选的色。
+   */
+  glowColor?: string;
   className?: string;
 }
 
-export function TiltCard({ children, max = 12, glare = true, className }: TiltCardProps) {
+export function TiltCard({
+  children,
+  max = 12,
+  glare = true,
+  glowColor = "var(--foreground)",
+  className,
+}: TiltCardProps) {
   const ref = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
   const canHover = useHoverCapable();
@@ -65,7 +76,7 @@ export function TiltCard({ children, max = 12, glare = true, className }: TiltCa
   }
 
   const transform = useMotionTemplate`perspective(1000px) rotateX(${srx}deg) rotateY(${sry}deg)`;
-  const glareBg = useMotionTemplate`radial-gradient(circle at ${gx}% ${gy}%, var(--foreground), transparent 50%)`;
+  const glareBg = useMotionTemplate`radial-gradient(circle at ${gx}% ${gy}%, ${glowColor}, transparent 50%)`;
 
   return (
     <motion.div
@@ -80,7 +91,7 @@ export function TiltCard({ children, max = 12, glare = true, className }: TiltCa
         <motion.div
           aria-hidden
           style={{ background: glareBg }}
-          className="pointer-events-none absolute inset-0 opacity-15"
+          className="pointer-events-none absolute inset-0 opacity-20 blur-xl"
         />
       ) : null}
     </motion.div>
