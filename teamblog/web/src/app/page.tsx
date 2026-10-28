@@ -84,7 +84,8 @@ export default async function HomePage() {
           <Stat label="成员" value={page.items.length} />
           <Stat label="打卡天数" value={activeDays} />
           <Stat label="累计打卡" value={checkin} />
-          <Stat label="当前版本" value="v1.0" text />
+          {/* 版本号取最新一条更新日志，写死过 v1.0 导致首页一直显示旧版本 */}
+        <Stat label="当前版本" value={currentVersion?.version ?? "v1.2"} text />
         </dl>
       </section>
 
