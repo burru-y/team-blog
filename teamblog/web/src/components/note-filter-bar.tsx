@@ -4,6 +4,7 @@ import { Search, X } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
+import { InlineSlider } from "@/components/motion/range-slider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { tagChipStyle } from "@/lib/tag-colors";
@@ -21,12 +22,16 @@ export function NoteFilterBar({
   author,
   authors,
   tags,
+  size,
+  total,
 }: {
   q?: string;
   tag?: string;
   author?: string;
   authors: string[];
   tags: string[];
+  size: number;
+  total: number;
 }) {
   const router = useRouter();
   const params = useSearchParams();
@@ -103,6 +108,21 @@ export function NoteFilterBar({
           </Button>
         ) : null}
       </form>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <span className="text-xs text-muted-foreground">每页</span>
+        <InlineSlider
+          defaultValue={size}
+          onValueCommit={(value) => apply({ size: String(value) })}
+          min={5}
+          max={50}
+          step={5}
+          label="条数"
+        />
+        <span className="text-xs text-muted-foreground tabular-nums">
+          显示 {Math.min(size, total)} / {total}
+        </span>
+      </div>
 
       {tags.length > 0 ? (
         <div className="flex flex-wrap items-center gap-1.5">

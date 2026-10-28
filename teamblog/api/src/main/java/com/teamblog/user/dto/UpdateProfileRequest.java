@@ -21,6 +21,11 @@ public record UpdateProfileRequest(
         @Size(max = 500, message = "简介不能超过 500 字")
         String bio,
 
+        /** 名片强调色，形如 #5b8def。 */
+        @Size(max = 9, message = "颜色值过长")
+        @Pattern(regexp = "^$|^#[0-9a-fA-F]{6}$", message = "颜色需为 #RRGGBB 格式")
+        String accentColor,
+
         /** 个人博客地址：填了才在个人主页显示为链接。 */
         @Size(max = 300, message = "博客地址过长")
         @Pattern(regexp = "^$|^https?://.+", message = "博客地址必须是 http(s) 链接")

@@ -64,6 +64,9 @@ public class User {
     private String githubUrl;
 
     /** 显示名（昵称）。为空时接口回退到 username。 */
+    @Column(name = "accent_color", length = 9)
+    private String accentColor;
+
     @Column(name = "blog_url", length = 300)
     private String blogUrl;
 
@@ -144,11 +147,12 @@ public class User {
     }
 
     public void updateProfile(String avatarUrl, String bio, String githubUrl, String blogUrl,
-                              boolean emailPublic, String displayName) {
+                              String accentColor, boolean emailPublic, String displayName) {
         this.avatarUrl = avatarUrl;
         this.bio = bio;
         this.githubUrl = githubUrl;
         this.blogUrl = blogUrl;
+        this.accentColor = accentColor;
         this.emailPublic = emailPublic;
         this.displayName = displayName;
     }
@@ -161,6 +165,10 @@ public class User {
      *
      * <p>不动 tokenVersion：JWT 的 sub 是用户 id，改名不影响已签发的令牌。
      */
+    public String getAccentColor() {
+        return accentColor;
+    }
+
     public String getBlogUrl() {
         return blogUrl;
     }

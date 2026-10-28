@@ -4,6 +4,8 @@ import { ArrowUp, Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { MessageScroller } from "@/components/motion/message-scroller";
+import StreamingText from "@/components/motion/streaming-text";
 import { streamNoteChat, streamProjectChat } from "@/lib/ai";
 import { useSession } from "@/lib/session";
 
@@ -152,7 +154,16 @@ export function AiChat({ projectId, noteId }: { projectId?: string; noteId?: str
         </div>
 
         {/* 消息区 */}
-        <div ref={scrollRef} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
+        <MessageScroller
+          followOutput
+          smooth
+          busy={busy}
+          label="对话内容"
+          navigation="rail"
+          navigationLabel="对话导航"
+          viewportClassName="min-h-0 flex-1"
+          contentClassName="space-y-4 px-4 py-4"
+        >
           {turns.length === 0 ? (
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground">问点什么？回答只依据{isNote ? "这篇笔记" : "这个项目"}的资料。</p>
@@ -189,15 +200,12 @@ export function AiChat({ projectId, noteId }: { projectId?: string; noteId?: str
                   <div className="flex justify-start">
                     <div className="max-w-[92%] space-y-1.5 rounded-2xl rounded-bl-sm border bg-muted/40 px-3.5 py-2.5">
                       {turn.answer ? (
-                        <p className="whitespace-pre-wrap text-sm leading-relaxed text-foreground/90">
-                          {turn.answer}
-                          {streaming ? (
-                            <span
-                              aria-hidden
-                              className="animate-caret ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-foreground"
-                            />
-                          ) : null}
-                        </p>
+                        <StreamingText
+                          live
+                          busy={streaming}
+                          content={[{ text: turn.answer }]}
+                          fill
+                        />
                       ) : busy && isLast ? (
                         <ThinkingRow elapsed={elapsed} />
                       ) : null}
@@ -208,7 +216,7 @@ export function AiChat({ projectId, noteId }: { projectId?: string; noteId?: str
               );
             })
           )}
-        </div>
+        </MessageScroller>
 
         {/* 输入区 */}
         <div className="border-t p-3">

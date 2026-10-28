@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { UploadQueue } from "@/components/upload-queue";
 import { UserAvatar } from "@/components/user-avatar";
 import { Input } from "@/components/ui/input";
+import { ColorPicker } from "@/components/motion/color-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
@@ -35,6 +36,7 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
   const [bio, setBio] = useState(profile.bio ?? "");
   const [githubUrl, setGithubUrl] = useState(profile.githubUrl ?? "");
   const [blogUrl, setBlogUrl] = useState(profile.blogUrl ?? "");
+  const [accentColor, setAccentColor] = useState(profile.accentColor ?? "");
   const [avatarUrl, setAvatarUrl] = useState(profile.avatarUrl ?? "");
   const [emailPublic, setEmailPublic] = useState(profile.emailPublic ?? false);
 
@@ -58,7 +60,16 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
     setError(null);
     try {
       await api.updateProfile(
-      { displayName, username, bio, githubUrl, blogUrl, avatarUrl, emailPublic },
+      {
+        displayName,
+        username,
+        bio,
+        githubUrl,
+        blogUrl,
+        accentColor: accentColor || undefined,
+        avatarUrl,
+        emailPublic,
+      },
       token,
     );
       setOpen(false);
@@ -154,6 +165,29 @@ export function ProfileEditor({ profile }: { profile: UserResponse }) {
               />
               <p className="text-xs text-muted-foreground">
                 填了会在你的个人主页显示为链接，留空则不显示。
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <Label>名片强调色</Label>
+              <div className="flex items-center gap-3">
+                <ColorPicker value={accentColor || "#5b8def"} onValueChange={setAccentColor} />
+                <span className="text-xs text-muted-foreground">
+                  {accentColor || "未设置（默认品牌色）"}
+                </span>
+                {accentColor ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setAccentColor("")}
+                  >
+                    清除
+                  </Button>
+                ) : null}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                会用在个人主页的头像描边和统计卡片上。
               </p>
             </div>
 

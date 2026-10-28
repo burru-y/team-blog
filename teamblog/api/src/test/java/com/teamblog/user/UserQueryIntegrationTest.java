@@ -120,7 +120,8 @@ class UserQueryIntegrationTest {
     void 公开资料_emailPublic为true时返回邮箱() throws Exception {
         User user = persist("public_mail", false);
         // 参数：avatarUrl, bio, githubUrl, blogUrl, emailPublic, displayName
-        user.updateProfile(null, null, null, null, true, null);
+        // 参数：avatarUrl, bio, githubUrl, blogUrl, accentColor, emailPublic, displayName
+        user.updateProfile(null, null, null, null, null, true, null);
         userRepository.saveAndFlush(user);
 
         mockMvc.perform(get("/api/v1/users/" + user.getUsername()))

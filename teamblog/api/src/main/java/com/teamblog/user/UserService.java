@@ -119,6 +119,9 @@ public class UserService {
         String bio = request.bio() != null ? blankToNull(request.bio()) : user.getBio();
         String githubUrl = request.githubUrl() != null ? blankToNull(request.githubUrl()) : user.getGithubUrl();
         String blogUrl = request.blogUrl() != null ? blankToNull(request.blogUrl()) : user.getBlogUrl();
+        String accentColor = request.accentColor() != null
+                ? blankToNull(request.accentColor())
+                : user.getAccentColor();
         boolean emailPublic = request.emailPublic() != null ? request.emailPublic() : user.isEmailPublic();
 
         String displayName = request.displayName() != null
@@ -137,7 +140,7 @@ public class UserService {
             }
         }
 
-        user.updateProfile(avatarUrl, bio, githubUrl, blogUrl, emailPublic, displayName);
+        user.updateProfile(avatarUrl, bio, githubUrl, blogUrl, accentColor, emailPublic, displayName);
         return user;
     }
 

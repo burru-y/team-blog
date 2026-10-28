@@ -20,6 +20,14 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# 长构建（api 约 3-5 分钟）期间 ssh 空闲会被中间设备重置，
+# ServerAliveInterval 定期发心跳可以显著减少这类中断。
+$SshOpts = @(
+  "-o", "ServerAliveInterval=15",
+  "-o", "ServerAliveCountMax=8",
+  "-o", "StrictHostKeyChecking=no"
+)
 $repo = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $zip = Join-Path $repo "team-blog-src.zip"
 
@@ -49,7 +57,7 @@ if ($LASTEXITCODE -ne 0) { throw "上传失败" }
 Step "解压覆盖"
 # 先删掉远端的源码目录：unzip 只会覆盖同名文件，本地删掉的文件在服务器上会残留。
 # 之前就因为这个残留了一份重复的 V2 迁移，Flyway 直接起不来。
-& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost `
+& ssh -i $KeyPath @SshOpts root@$ServerHost `
   "rm -rf /root/teamblog/api/src /root/teamblog/web/src /root/teamblog/ai/app && cd /root && unzip -oq team-blog-src.zip && echo 解压完成"
 if ($LASTEXITCODE -ne 0) { throw "解压失败" }
 
@@ -60,23 +68,34 @@ if ($UploadOnly) {
 
 $compose = "docker compose -f compose.prod.yaml --env-file .env.prod"
 
-if ($All -or -not $Service) {
-  Step "重建全部服务（逐个，避免 2G 内存 OOM）"
-  & ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "cd $RemoteDir/ops/compose && bash ../build-prod.sh"
+$buildCommand = if ($All -or -not $Service) {
+  "cd $RemoteDir/ops/compose && bash ../build-prod.sh"
 } else {
-  Step "只重建 $Service"
-  & ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "cd $RemoteDir/ops/compose && $compose build $Service && $compose up -d $Service"
+  "cd $RemoteDir/ops/compose && $compose build $Service && $compose up -d $Service"
 }
-if ($LASTEXITCODE -ne 0) { throw "构建或启动失败，去服务器看日志" }
+
+Step $(if ($All -or -not $Service) { "重建全部服务（逐个，避免 2G 内存 OOM）" } else { "只重建 $Service" })
+
+# 连接中断时重试一次：docker build 是幂等的，重跑只会复用已有层
+$buildOk = $false
+for ($attempt = 1; $attempt -le 2; $attempt++) {
+  & ssh -i $KeyPath @SshOpts root@$ServerHost $buildCommand
+  if ($LASTEXITCODE -eq 0) { $buildOk = $true; break }
+  if ($attempt -lt 2) {
+    Write-Host "构建连接中断，10 秒后重试…" -ForegroundColor Yellow
+    Start-Sleep -Seconds 10
+  }
+}
+if (-not $buildOk) { throw "构建或启动失败，去服务器看日志" }
 
 # 重建服务后容器的 IP 会变，而 nginx 在启动时就解析并缓存了 upstream 地址，
 # 不重启它会一直把请求转发到旧 IP（表现为 502，但 api 自己健康）。
 Step "重启 nginx（刷新 upstream 地址）"
-& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "cd $RemoteDir/ops/compose && $compose restart nginx"
+& ssh -i $KeyPath @SshOpts root@$ServerHost "cd $RemoteDir/ops/compose && $compose restart nginx"
 Start-Sleep -Seconds 4
 
 Step "健康检查"
-& ssh -i $KeyPath -o StrictHostKeyChecking=no root@$ServerHost "curl -fsS -o /dev/null -w '首页 %{http_code}\n' http://127.0.0.1/ && curl -fsS http://127.0.0.1/api/v1/health"
+& ssh -i $KeyPath @SshOpts root@$ServerHost "curl -fsS -o /dev/null -w '首页 %{http_code}\n' http://127.0.0.1/ && curl -fsS http://127.0.0.1/api/v1/health"
 if ($LASTEXITCODE -ne 0) {
   Write-Host "`n自检失败，看日志：" -ForegroundColor Red
   Write-Host "  ssh -i `"$KeyPath`" root@$ServerHost `"cd $RemoteDir/ops/compose && $compose logs --tail=60`""

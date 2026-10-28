@@ -91,7 +91,17 @@ export default async function ProfilePage({
       <header className="space-y-5 border-b pb-8">
         <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
           <div className="flex items-start gap-4">
-            <UserAvatar name={name} avatarUrl={profile.avatarUrl} className="size-20 text-xl" />
+            {/* 头像外圈用名片强调色；没设置就退回默认描边 */}
+            <div
+              className="shrink-0 rounded-full p-0.5"
+              style={{
+                background: profile.accentColor
+                  ? `linear-gradient(135deg, ${profile.accentColor}, transparent)`
+                  : "var(--border)",
+              }}
+            >
+              <UserAvatar name={name} avatarUrl={profile.avatarUrl} className="size-20 text-xl" />
+            </div>
             <div className="space-y-2">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-3xl font-semibold tracking-tight">{name}</h1>
@@ -155,7 +165,15 @@ export default async function ProfilePage({
             { label: "打卡天数", value: checkinDays },
             { label: "积分", value: profile.totalPoints },
           ].map((item) => (
-            <div key={item.label} className="rounded-lg border px-4 py-3">
+            <div
+              key={item.label}
+              className="rounded-lg border px-4 py-3"
+              style={
+                profile.accentColor
+                  ? { borderColor: `color-mix(in oklch, ${profile.accentColor} 35%, var(--border))` }
+                  : undefined
+              }
+            >
               <dt className="text-xs text-muted-foreground">{item.label}</dt>
               <dd className="mt-0.5 text-xl font-semibold tabular-nums">{item.value}</dd>
             </div>

@@ -27,6 +27,8 @@ public record UserResponse(
         String githubUrl,
         /** 个人博客地址，为空表示没填。 */
         String blogUrl,
+        /** 名片强调色，未设置为空。 */
+        String accentColor,
         boolean emailPublic,
         int totalPoints,
         /** 等级由总分推导（LevelCalculator）。放在后端算，前端就不必复制一份阈值表。 */
@@ -57,6 +59,7 @@ public record UserResponse(
                 user.getBio(),
                 user.getGithubUrl(),
                 user.getBlogUrl(),
+                user.getAccentColor(),
                 user.isEmailPublic(),
                 user.getTotalPoints(),
                 LevelCalculator.levelOf(user.getTotalPoints()),

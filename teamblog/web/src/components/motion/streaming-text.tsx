@@ -97,6 +97,8 @@ export default function StreamingText({
   fill = false,
   onDone,
   onFollowUp,
+  live = false,
+  busy = false,
 }: {
   variant?: string;
   /** the streamed tokens; `cite` tokens render an inline source chip */
@@ -114,7 +116,28 @@ export default function StreamingText({
   onDone?: () => void;
   /** fired when a follow-up prompt is chosen */
   onFollowUp?: (text: string, index: number) => void;
+  /**
+   * 真实流式模式：内容由外部（SSE）逐段给进来，组件不再按固定节奏自己推进。
+   * 这是把演示组件接进真实对话时必须的改动——否则动画节奏会和网络数据打架。
+   */
+  live?: boolean;
+  /** live 模式下是否仍在接收数据（显示光标） */
+  busy?: boolean;
 } = {}) {
+  if (live) {
+    return (
+      <p className={fill ? "w-full whitespace-pre-wrap text-sm leading-relaxed text-foreground/90" : "whitespace-pre-wrap text-sm leading-relaxed text-foreground/90"}>
+        {content.map((token) => token.text).join("")}
+        {busy ? (
+          <span
+            aria-hidden
+            className="animate-caret ml-0.5 inline-block h-3.5 w-0.5 translate-y-0.5 bg-foreground"
+          />
+        ) : null}
+      </p>
+    );
+  }
+
   const l = { ...DEFAULT_LABELS, ...labels };
   const [count, setCount] = useState(0);
   const [sourcesOpen, setSourcesOpen] = useState(false);

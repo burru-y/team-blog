@@ -24,13 +24,19 @@ export const dynamic = "force-dynamic";
 export default async function NotesPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; tag?: string; author?: string }>;
+  searchParams: Promise<{ q?: string; tag?: string; author?: string; size?: string }>;
 }) {
-  const { q, tag, author } = await searchParams;
+  const { q, tag, author, size } = await searchParams;
 
-  const notes = await serverApi
+  // 每页条数：5–50，默认 20。越界直接夹紧，不报错
+  const pageSize = Math.min(50, Math.max(5, Number(size) || 20));
+
+  const allNotes = await serverApi
     .listLearningLogsFiltered({ q, tag, author })
     .catch(() => [] as LearningLogResponse[]);
+
+  // 服务端就截断：列表页只关心"当前这一屏"
+  const notes = allNotes.slice(0, pageSize);
 
   // 作者与标签的可选值从结果里汇总，省一次请求
   const authors = [...new Set(notes.map((note) => note.ownerUsername))].sort();
@@ -53,10 +59,23 @@ export default async function NotesPage({
         size="large"
         title="笔记"
         description="成员写下的学习内容。按关键词、标签或作者筛选。"
-        meta={<span>{notes.length} 篇</span>}
+        meta={
+          <span>
+            {notes.length}
+            {allNotes.length > notes.length ? ` / ${allNotes.length}` : ""} 篇
+          </span>
+        }
       />
 
-      <NoteFilterBar q={q} tag={tag} author={author} authors={authors} tags={tags} />
+      <NoteFilterBar
+        q={q}
+        tag={tag}
+        author={author}
+        authors={authors}
+        tags={tags}
+        size={pageSize}
+        total={allNotes.length}
+      />
 
       {notes.length === 0 ? (
         <div className="rounded-xl border border-dashed px-6 py-14 text-center">

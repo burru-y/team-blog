@@ -127,6 +127,8 @@ export const api = {
       bio?: string;
       /** 个人博客地址，填了在个人主页显示 */
       blogUrl?: string;
+      /** 名片强调色，#RRGGBB */
+      accentColor?: string;
       githubUrl?: string;
       emailPublic?: boolean;
       displayName?: string;
