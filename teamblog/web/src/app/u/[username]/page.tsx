@@ -88,8 +88,10 @@ export default async function ProfilePage({
   return (
     <div className="space-y-10">
       {/* 作者区：头像、名字、简介、外链与数据 */}
+      {/* 编辑按钮放在名片框外：它在框内会显得像表单的一部分，也挤压头像那一行 */}
+      <div className="flex items-start justify-between gap-3">
       <TiltCard
-        className="border bg-card/60 p-5 sm:p-6"
+        className="min-w-0 flex-1 border bg-card/60 p-5 sm:p-6"
         max={3}
         glowColor={profile.accentColor ?? undefined}
       >
@@ -160,7 +162,6 @@ export default async function ProfilePage({
             </div>
           </div>
 
-          <ProfileEditor profile={profile} />
         </div>
 
         <dl className="grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -186,6 +187,12 @@ export default async function ProfilePage({
         </dl>
       </header>
       </TiltCard>
+
+      {/* 只有本人看得到；访客这里什么都不渲染 */}
+      <div className="shrink-0 pt-1">
+        <ProfileEditor profile={profile} />
+      </div>
+      </div>
 
       <div className="grid gap-10 lg:grid-cols-[1fr_18rem]">
         {/* 主列：文章流 */}
